@@ -2,15 +2,6 @@ name: Build APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: ["**"]
-    paths-ignore:
-      - "README.md"
-      - "fastlane/**"
-      - "assets/**"
-      - ".github/**/*.md"
-      - ".github/FUNDING.yml"
-      - ".github/ISSUE_TEMPLATE/**"
 
 permissions:
   contents: write
@@ -55,7 +46,7 @@ jobs:
       - name: Check signing secrets
         id: signing
         run: |
-          if [ -n "${{ secrets.KEYSTORE }}" ] && [ -n "${{ secrets.KEY_ALIAS }}" ] && [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
+          if [ -n "${{ secrets.KEYSTORE || secrets.ANDROID_SIGNING_KEY }}" ] && [ -n "${{ secrets.KEY_ALIAS }}" ] && [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && [ -n "${{ secrets.KEY_PASSWORD }}" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
@@ -66,7 +57,7 @@ jobs:
         uses: ilharp/sign-android-release@v2.0.0
         with:
           releaseDir: app/build/outputs/apk/foss/release/
-          signingKey: ${{ secrets.KEYSTORE }}
+          signingKey: ${{ secrets.KEYSTORE || secrets.ANDROID_SIGNING_KEY }}
           keyAlias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}

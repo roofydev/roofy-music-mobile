@@ -7,6 +7,9 @@ on:
       - "app/build.gradle.kts"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   check-version:
     if: "!contains(github.ref, 'refs/tags')"
@@ -75,11 +78,37 @@ jobs:
           LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
           LASTFM_SECRET: ${{ secrets.LASTFM_SECRET }}
 
+      - name: Check signing secrets
+        run: |
+          missing=0
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::Missing KEYSTORE or ANDROID_SIGNING_KEY repository secret."
+            missing=1
+          fi
+          if [ -z "$KEY_ALIAS" ]; then
+            echo "::error::Missing KEY_ALIAS repository secret."
+            missing=1
+          fi
+          if [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Missing KEYSTORE_PASSWORD repository secret."
+            missing=1
+          fi
+          if [ -z "$KEY_PASSWORD" ]; then
+            echo "::error::Missing KEY_PASSWORD repository secret."
+            missing=1
+          fi
+          exit "$missing"
+        env:
+          SIGNING_KEY: ${{ secrets.KEYSTORE || secrets.ANDROID_SIGNING_KEY }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
       - name: Sign APK
         uses: ilharp/sign-android-release@v2.0.0
         with:
           releaseDir: app/build/outputs/apk/gms/release/
-          signingKey: ${{ secrets.KEYSTORE }}
+          signingKey: ${{ secrets.KEYSTORE || secrets.ANDROID_SIGNING_KEY }}
           keyAlias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
@@ -130,7 +159,7 @@ jobs:
 
       - name: Create Release
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
           gh release create "v${{ needs.check-version.outputs.new_version }}" \
             --title "${{ needs.check-version.outputs.new_version }}" \
