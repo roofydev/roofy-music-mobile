@@ -114,4 +114,4 @@ Roofy Music is built on a solid foundation and gratefully acknowledges the upstr
 
 ## License
 
-Roofy Music is licensed under the **GNU General Public License v3.0 (GPLv3)**. See [`LICENSE`](LICENSE) for full details. Any distributed builds must include corresponding source code.
+Roofy Music is licensed under the **GNU General Public License v3.0 (GPLv3)**. See [`LICENSE`](LICENSE) for full details. Any distributed builds must include corresponding source code. 
