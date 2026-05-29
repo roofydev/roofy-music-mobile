@@ -88,10 +88,6 @@ class App :
 
         Timber.plant(Timber.DebugTree())
 
-        applicationScope.launch(Dispatchers.IO) {
-            YtDlpStreamFallback.initialize(this@App)
-        }
-
         // Pre-read Coil cache size on background to avoid runBlocking in newImageLoader
         applicationScope.launch(Dispatchers.IO) {
             cachedCoilCacheSize = dataStore.data.map { it[MaxImageCacheSizeKey] ?: 512 }.first()

@@ -201,6 +201,13 @@
     *;
 }
 
+## yt-dlp / youtubedl-android (JNI + JSON mappers; required for minified release builds)
+-keep class com.yausername.youtubedl_android.** { *; }
+-keep class com.yausername.youtubedl_common.** { *; }
+-keepclassmembers class * {
+    native <methods>;
+}
+
 ## Kotlinx Serialization
 -keepattributes *Annotation*
 -keepclassmembers class com.metrolist.shazamkit.models.** {

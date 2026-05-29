@@ -172,6 +172,25 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // youtubedl-android ships ~15 MB of native libs per ABI; limit release to phone ABIs.
+            ndk {
+                abiFilters.clear()
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
+            signingConfig =
+                when {
+                    file("keystore/release.keystore").exists() &&
+                        !System.getenv("STORE_PASSWORD").isNullOrBlank() ->
+                        signingConfigs.getByName("release")
+                    System.getenv("CI") == "true" || System.getenv("GITHUB_ACTIONS") == "true" ->
+                        null
+                    workflowDebugKeystoreFile != null ->
+                        signingConfigs.getByName("workflowDebug")
+                    persistentDebugKeystoreFile.exists() ->
+                        signingConfigs.getByName("persistentDebug")
+                    else ->
+                        signingConfigs.getByName("debug")
+                }
         }
         debug {
             if (applicationIdOverride == null) {

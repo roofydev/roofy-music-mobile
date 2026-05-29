@@ -117,7 +117,7 @@ object YtDlpStreamFallback {
                 YoutubeDL.getInstance().init(context)
                 initialized = true
                 Timber.tag(TAG).i("yt-dlp initialized")
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.tag(TAG).w(e, "Failed to initialize yt-dlp")
             }
         }
