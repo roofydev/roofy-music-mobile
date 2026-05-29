@@ -92,6 +92,8 @@ fun PersonalLibrarySettings(
     var historySyncSummary by rememberSaveable { mutableStateOf("") }
     var historySyncEpochMs by rememberPreference(PersonalLibraryHistorySyncEpochMsKey, 0L)
     var syncingAll by rememberSaveable { mutableStateOf(false) }
+    var syncingRatings by rememberSaveable { mutableStateOf(false) }
+    var ratingSyncSummary by rememberSaveable { mutableStateOf("") }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf(emptyList<SubsonicSong>()) }
@@ -234,6 +236,7 @@ fun PersonalLibrarySettings(
                             !syncingFavorites &&
                             !syncingPlaylists &&
                             !syncingHistory &&
+                            !syncingRatings &&
                             serverUrl.isNotBlank() &&
                             username.isNotBlank() &&
                             password.isNotBlank(),
@@ -242,9 +245,11 @@ fun PersonalLibrarySettings(
                         syncingFavorites = true
                         syncingPlaylists = true
                         syncingHistory = true
+                        syncingRatings = true
                         favoriteSyncSummary = ""
                         playlistSyncSummary = ""
                         historySyncSummary = ""
+                        ratingSyncSummary = ""
                         coroutineScope.launch {
                             val client = SubsonicClient(
                                 PersonalLibraryCredentials(
@@ -254,23 +259,24 @@ fun PersonalLibrarySettings(
                                 )
                             )
                             val result = runCatching {
-                                val favorites = PersonalLibrarySync.syncFavorites(database, client)
-                                val playlists = PersonalLibrarySync.syncPlaylists(database, client)
-                                val history =
-                                    PersonalLibrarySync.syncPlayHistory(
-                                        database = database,
-                                        client = client,
-                                        lastSyncedEpochMs = historySyncEpochMs,
-                                    )
-                                Triple(favorites, playlists, history)
+                                PersonalLibrarySync.syncAll(
+                                    database = database,
+                                    client = client,
+                                    lastSyncedEpochMs = historySyncEpochMs,
+                                )
                             }
 
                             syncingAll = false
                             syncingFavorites = false
                             syncingPlaylists = false
                             syncingHistory = false
+                            syncingRatings = false
                             result
-                                .onSuccess { (favorites, playlists, history) ->
+                                .onSuccess { syncResult ->
+                                    val favorites = syncResult.favorites
+                                    val ratings = syncResult.ratings
+                                    val playlists = syncResult.playlists
+                                    val history = syncResult.history
                                     historySyncEpochMs = history.lastSyncedEpochMs
                                     favoriteSyncSummary = context.getString(
                                         R.string.personal_library_sync_summary,
@@ -291,6 +297,12 @@ fun PersonalLibrarySettings(
                                         history.pushedScrobbles,
                                         history.skippedEvents,
                                     )
+                                    ratingSyncSummary = context.getString(
+                                        R.string.personal_library_sync_ratings_summary,
+                                        ratings.remoteRatings,
+                                        ratings.importedRatings,
+                                        ratings.pushedRatings,
+                                    )
                                 }
                                 .onFailure {
                                     Toast
@@ -306,6 +318,64 @@ fun PersonalLibrarySettings(
                         } else {
                             stringResource(R.string.personal_library_sync_all)
                         }
+                    )
+                }
+
+                Text(
+                    text = stringResource(R.string.personal_library_sync_ratings_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                RetroButton(
+                    enabled = !syncingRatings && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
+                    onClick = {
+                        syncingRatings = true
+                        ratingSyncSummary = ""
+                        coroutineScope.launch {
+                            val client = SubsonicClient(
+                                PersonalLibraryCredentials(
+                                    serverUrl = serverUrl,
+                                    username = username,
+                                    password = password,
+                                )
+                            )
+                            val result = runCatching {
+                                PersonalLibrarySync.syncRatings(database, client)
+                            }
+
+                            syncingRatings = false
+                            result
+                                .onSuccess {
+                                    ratingSyncSummary = context.getString(
+                                        R.string.personal_library_sync_ratings_summary,
+                                        it.remoteRatings,
+                                        it.importedRatings,
+                                        it.pushedRatings,
+                                    )
+                                }
+                                .onFailure {
+                                    Toast
+                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .show()
+                                }
+                        }
+                    },
+                ) {
+                    Text(
+                        if (syncingRatings) {
+                            stringResource(R.string.personal_library_syncing)
+                        } else {
+                            stringResource(R.string.personal_library_sync_ratings)
+                        }
+                    )
+                }
+
+                if (ratingSyncSummary.isNotBlank()) {
+                    Text(
+                        text = ratingSyncSummary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 

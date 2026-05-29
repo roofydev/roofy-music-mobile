@@ -35,6 +35,19 @@ data class PersonalLibraryFavoriteSyncResult(
     val updatedFavorites: Int,
 )
 
+data class PersonalLibraryRatingSyncResult(
+    val importedRatings: Int,
+    val pushedRatings: Int,
+    val remoteRatings: Int,
+)
+
+data class PersonalLibraryFullSyncResult(
+    val favorites: PersonalLibraryFavoriteSyncResult,
+    val history: PersonalLibraryHistorySyncResult,
+    val playlists: PersonalLibraryPlaylistSyncResult,
+    val ratings: PersonalLibraryRatingSyncResult,
+)
+
 object PersonalLibrarySync {
     suspend fun syncFavorites(
         database: MusicDatabase,
@@ -59,6 +72,7 @@ object PersonalLibrarySync {
             database.withTransaction {
                 remoteSongs.forEach { song ->
                     val metadata = song.toRoofyMetadata(client)
+                    val remoteRating = song.userRating?.takeIf { it > 0 }
                     val existing = getSongByIdBlocking(metadata.id)
                     if (existing == null) {
                         insert(metadata) {
@@ -66,18 +80,25 @@ object PersonalLibrarySync {
                                 inLibrary = now,
                                 liked = true,
                                 likedDate = now,
+                                subsonicUserRating = remoteRating,
                             )
                         }
                         imported += 1
-                    } else if (!existing.song.liked || existing.song.inLibrary == null) {
-                        update(
-                            existing.song.copy(
-                                inLibrary = existing.song.inLibrary ?: now,
-                                liked = true,
-                                likedDate = existing.song.likedDate ?: now,
+                    } else {
+                        val needsFavoriteUpdate =
+                            !existing.song.liked || existing.song.inLibrary == null
+                        val needsRatingUpdate = remoteRating != null && existing.song.subsonicUserRating != remoteRating
+                        if (needsFavoriteUpdate || needsRatingUpdate) {
+                            update(
+                                existing.song.copy(
+                                    inLibrary = existing.song.inLibrary ?: now,
+                                    liked = true,
+                                    likedDate = existing.song.likedDate ?: now,
+                                    subsonicUserRating = remoteRating ?: existing.song.subsonicUserRating,
+                                ),
                             )
-                        )
-                        updated += 1
+                            updated += 1
+                        }
                     }
                 }
             }
@@ -276,6 +297,69 @@ object PersonalLibrarySync {
                 pushedScrobbles = pushed,
                 skippedEvents = skipped,
                 lastSyncedEpochMs = latestEpoch,
+            )
+        }
+
+    suspend fun syncRatings(
+        database: MusicDatabase,
+        client: SubsonicClient,
+    ): PersonalLibraryRatingSyncResult =
+        withContext(Dispatchers.IO) {
+            val remoteSongs = client.getStarred2().song
+            val remoteRatingById = remoteSongs.mapNotNull { song ->
+                song.userRating?.takeIf { it > 0 }?.let { song.id to it }
+            }.toMap()
+
+            var imported = 0
+            var pushed = 0
+
+            database.subsonicSongsWithRating().forEach { local ->
+                val rawId = SubsonicClient.localIdFromMediaId(local.id) ?: return@forEach
+                val localRating = local.song.subsonicUserRating ?: return@forEach
+                val remoteRating = remoteRatingById[rawId]
+                if (remoteRating == null) {
+                    client.setRating(rawId, localRating)
+                    pushed += 1
+                } else if (remoteRating != localRating) {
+                    client.setRating(rawId, localRating)
+                    pushed += 1
+                }
+            }
+
+            database.withTransaction {
+                remoteSongs.forEach { song ->
+                    val rating = song.userRating?.takeIf { it > 0 } ?: return@forEach
+                    val mediaId = SubsonicClient.mediaId(song.id)
+                    val existing = getSongByIdBlocking(mediaId) ?: return@forEach
+                    if (existing.song.subsonicUserRating != rating) {
+                        update(existing.song.copy(subsonicUserRating = rating))
+                        imported += 1
+                    }
+                }
+            }
+
+            PersonalLibraryRatingSyncResult(
+                importedRatings = imported,
+                pushedRatings = pushed,
+                remoteRatings = remoteRatingById.size,
+            )
+        }
+
+    suspend fun syncAll(
+        database: MusicDatabase,
+        client: SubsonicClient,
+        lastSyncedEpochMs: Long,
+    ): PersonalLibraryFullSyncResult =
+        withContext(Dispatchers.IO) {
+            val favorites = syncFavorites(database, client)
+            val ratings = syncRatings(database, client)
+            val playlists = syncPlaylists(database, client)
+            val history = syncPlayHistory(database, client, lastSyncedEpochMs)
+            PersonalLibraryFullSyncResult(
+                favorites = favorites,
+                ratings = ratings,
+                playlists = playlists,
+                history = history,
             )
         }
 }

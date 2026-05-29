@@ -708,6 +708,9 @@
     <string name="personal_library_sync_history">Sync play history</string>
     <string name="personal_library_sync_history_desc">Push Personal Library listening events to Navidrome as scrobbles.</string>
     <string name="personal_library_sync_history_summary">Pushed: %1$d, skipped: %2$d</string>
+    <string name="personal_library_sync_ratings">Sync ratings</string>
+    <string name="personal_library_sync_ratings_desc">Merge Navidrome star ratings (1–5) for Personal Library tracks.</string>
+    <string name="personal_library_sync_ratings_summary">Remote: %1$d, imported: %2$d, pushed: %3$d</string>
     <string name="desktop_import">Desktop import queue</string>
     <string name="desktop_import_integration_desc">Send mobile songs to the Roofy desktop import queue</string>
     <string name="desktop_import_settings_desc">Pair with Roofy desktop to send YouTube Music tracks from this phone into the desktop import queue.</string>

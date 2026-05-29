@@ -667,6 +667,11 @@ interface DatabaseDao {
     @Query("SELECT * FROM song WHERE id LIKE 'subsonic:%' AND liked")
     fun likedSubsonicSongs(): List<Song>
 
+    @Query(
+        "SELECT * FROM song WHERE id LIKE 'subsonic:%' AND subsonicUserRating IS NOT NULL AND subsonicUserRating > 0",
+    )
+    fun subsonicSongsWithRating(): List<Song>
+
     @Query("SELECT * FROM playlist WHERE browseId LIKE 'subsonic:playlist:%' OR browseId LIKE 'subsonic:pending:%'")
     fun subsonicManagedPlaylists(): List<PlaylistEntity>
 

@@ -65,6 +65,8 @@ data class SongEntity(
     val uploadEntityId: String? = null,
     @ColumnInfo(name = "isCached", defaultValue = "0")
     val isCached: Boolean = false,
+    @ColumnInfo(name = "subsonicUserRating", defaultValue = "NULL")
+    val subsonicUserRating: Int? = null,
 ) {
     fun localToggleLike() =
         copy(
