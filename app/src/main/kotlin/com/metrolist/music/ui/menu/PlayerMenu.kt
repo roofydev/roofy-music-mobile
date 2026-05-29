@@ -65,6 +65,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -108,6 +110,7 @@ import com.metrolist.music.ui.component.VolumeSlider
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
@@ -169,7 +172,7 @@ fun PlayerMenu(
 
     val desktopImportEndpointUrl by rememberPreference(DesktopImportEndpointUrlKey, "")
     val desktopImportToken by rememberPreference(DesktopImportTokenKey, "")
-    var handoffInProgress by rememberSaveable { mutableStateOf(false) }
+    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
     val roofyConnectSuccessText = stringResource(R.string.roofy_connect_success)
     val roofyConnectFailedText = stringResource(R.string.roofy_connect_failed)
     val roofyConnectSentText = stringResource(R.string.roofy_connect_sent_to_desktop)
@@ -659,18 +662,20 @@ fun PlayerMenu(
                                         )
                                     },
                                     onClick = {
-                                        if (handoffInProgress) return@Material3MenuItemData
-                                        handoffInProgress = true
-                                        coroutineScope.launch {
+                                        val endpointUrl = desktopImportEndpointUrl
+                                        val token = desktopImportToken
+                                        onDismiss()
+                                        lifecycleScope.launch {
                                             val result =
-                                                runCatching {
-                                                    HandoffPlayback.continueOnDesktop(
-                                                        playerConnection = playerConnection,
-                                                        endpointUrl = desktopImportEndpointUrl,
-                                                        token = desktopImportToken,
-                                                    )
+                                                withContext(Dispatchers.IO) {
+                                                    runCatching {
+                                                        HandoffPlayback.continueOnDesktop(
+                                                            playerConnection = playerConnection,
+                                                            endpointUrl = endpointUrl,
+                                                            token = token,
+                                                        )
+                                                    }
                                                 }
-                                            handoffInProgress = false
                                             result
                                                 .onSuccess {
                                                     Toast
@@ -679,7 +684,6 @@ fun PlayerMenu(
                                                             roofyConnectSentText,
                                                             Toast.LENGTH_SHORT,
                                                         ).show()
-                                                    onDismiss()
                                                 }
                                                 .onFailure {
                                                     Toast
@@ -707,21 +711,23 @@ fun PlayerMenu(
                                         )
                                     },
                                     onClick = {
-                                        if (handoffInProgress) return@Material3MenuItemData
-                                        handoffInProgress = true
-                                        coroutineScope.launch {
+                                        val endpointUrl = desktopImportEndpointUrl
+                                        val token = desktopImportToken
+                                        val credentials = context.personalLibraryCredentials()
+                                        onDismiss()
+                                        lifecycleScope.launch {
                                             val result =
-                                                runCatching {
-                                                    HandoffPlayback.continueFromDesktop(
-                                                        database = database,
-                                                        playerConnection = playerConnection,
-                                                        endpointUrl = desktopImportEndpointUrl,
-                                                        token = desktopImportToken,
-                                                        personalLibraryCredentials =
-                                                            context.personalLibraryCredentials(),
-                                                    )
+                                                withContext(Dispatchers.IO) {
+                                                    runCatching {
+                                                        HandoffPlayback.continueFromDesktop(
+                                                            database = database,
+                                                            playerConnection = playerConnection,
+                                                            endpointUrl = endpointUrl,
+                                                            token = token,
+                                                            personalLibraryCredentials = credentials,
+                                                        )
+                                                    }
                                                 }
-                                            handoffInProgress = false
                                             result
                                                 .onSuccess {
                                                     Toast
@@ -731,7 +737,6 @@ fun PlayerMenu(
                                                             Toast.LENGTH_SHORT,
                                                         ).show()
                                                     playerBottomSheetState.collapseSoft()
-                                                    onDismiss()
                                                 }
                                                 .onFailure {
                                                     Toast

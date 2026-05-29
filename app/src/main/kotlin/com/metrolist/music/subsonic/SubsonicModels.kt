@@ -40,6 +40,34 @@ data class SubsonicResponse(
     val starred2: SubsonicStarred = SubsonicStarred(),
     val playlists: SubsonicPlaylists? = null,
     val playlist: SubsonicPlaylist? = null,
+    val albumList2: SubsonicAlbumList? = null,
+    val album: SubsonicAlbumDetail? = null,
+)
+
+@Serializable
+data class SubsonicAlbumList(
+    val album: List<SubsonicAlbumRef> = emptyList(),
+)
+
+@Serializable
+data class SubsonicAlbumRef(
+    val id: String,
+    val name: String,
+    val artist: String? = null,
+    val artistId: String? = null,
+    val songCount: Int? = null,
+    val playCount: Int? = null,
+)
+
+@Serializable
+data class SubsonicAlbumDetail(
+    val id: String,
+    val name: String,
+    val artist: String? = null,
+    val artistId: String? = null,
+    val songCount: Int? = null,
+    val playCount: Int? = null,
+    val entry: List<SubsonicSong> = emptyList(),
 )
 
 @Serializable

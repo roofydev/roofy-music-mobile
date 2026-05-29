@@ -108,9 +108,25 @@ class SubsonicClient(
             parameters.append("submission", "true")
         }.response.ensureOk()
 
+    suspend fun getAlbumList2(
+        type: String,
+        size: Int = 50,
+    ): List<SubsonicAlbumRef> =
+        request("getAlbumList2.view") {
+            parameters.append("type", type)
+            parameters.append("size", size.coerceIn(1, 100).toString())
+        }.response.ensureOk().albumList2?.album ?: emptyList()
+
+    suspend fun getAlbum(id: String): SubsonicAlbumDetail =
+        request("getAlbum.view") {
+            parameters.append("id", id)
+        }.response.ensureOk().album ?: throw IllegalStateException("Album not found")
+
     fun streamUrl(id: String): String =
         endpoint("stream.view") {
             parameters.append("id", id)
+            // Serve the on-disk file (mp3/flac/ogg/…) — required for local library playback.
+            parameters.append("format", "raw")
         }
 
     fun coverArtUrl(id: String): String =

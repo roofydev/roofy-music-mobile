@@ -683,6 +683,12 @@ interface DatabaseDao {
         limit: Int,
     ): List<Event>
 
+    @Query("SELECT COUNT(*) > 0 FROM event WHERE songId = :songId AND timestamp = :timestamp")
+    suspend fun hasSubsonicEventAt(
+        songId: String,
+        timestamp: java.time.LocalDateTime,
+    ): Boolean
+
 
     @Transaction
     @Query("SELECT * FROM song_artist_map WHERE songId = :songId")

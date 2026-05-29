@@ -294,6 +294,7 @@ fun PersonalLibrarySettings(
                                     )
                                     historySyncSummary = context.getString(
                                         R.string.personal_library_sync_history_summary,
+                                        history.pulledPlays,
                                         history.pushedScrobbles,
                                         history.skippedEvents,
                                     )
@@ -524,6 +525,7 @@ fun PersonalLibrarySettings(
                                     historySyncEpochMs = it.lastSyncedEpochMs
                                     historySyncSummary = context.getString(
                                         R.string.personal_library_sync_history_summary,
+                                        it.pulledPlays,
                                         it.pushedScrobbles,
                                         it.skippedEvents,
                                     )

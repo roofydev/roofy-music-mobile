@@ -1625,17 +1625,10 @@ class MainActivity : ComponentActivity() {
         uri: android.net.Uri,
         navController: NavHostController,
     ): Boolean {
-        val isPairingLink =
-            uri.scheme.equals("roofymusic", ignoreCase = true) &&
-                uri.host.equals("pair", ignoreCase = true) &&
-                uri.pathSegments.firstOrNull().equals("subsonic", ignoreCase = true)
-        if (!isPairingLink) return false
+        if (!com.metrolist.music.pairing.RoofyPairingLinks.isSubsonicPairLink(uri)) return false
 
-        val serverUrl = uri.getQueryParameter("serverUrl")?.trim().orEmpty()
-        val username = uri.getQueryParameter("username")?.trim().orEmpty()
-        val password = uri.getQueryParameter("password").orEmpty()
-
-        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+        val params = com.metrolist.music.pairing.RoofyPairingLinks.parseSubsonicPair(uri)
+        if (params == null) {
             Toast.makeText(this, R.string.personal_library_pairing_invalid, Toast.LENGTH_LONG).show()
             navController.navigate("settings/integrations/personal_library") {
                 launchSingleTop = true
@@ -1646,9 +1639,9 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             dataStore.edit { settings ->
                 settings[PersonalLibraryEnabledKey] = true
-                settings[PersonalLibraryServerUrlKey] = serverUrl
-                settings[PersonalLibraryUsernameKey] = username
-                settings[PersonalLibraryPasswordKey] = password
+                settings[PersonalLibraryServerUrlKey] = params.serverUrl
+                settings[PersonalLibraryUsernameKey] = params.username
+                settings[PersonalLibraryPasswordKey] = params.password
             }
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity, R.string.personal_library_paired, Toast.LENGTH_SHORT).show()
@@ -1665,16 +1658,10 @@ class MainActivity : ComponentActivity() {
         uri: android.net.Uri,
         navController: NavHostController,
     ): Boolean {
-        val isPairingLink =
-            uri.scheme.equals("roofymusic", ignoreCase = true) &&
-                uri.host.equals("pair", ignoreCase = true) &&
-                uri.pathSegments.firstOrNull().equals("import", ignoreCase = true)
-        if (!isPairingLink) return false
+        if (!com.metrolist.music.pairing.RoofyPairingLinks.isImportPairLink(uri)) return false
 
-        val endpointUrl = uri.getQueryParameter("endpointUrl")?.trim().orEmpty()
-        val token = uri.getQueryParameter("token").orEmpty()
-
-        if (endpointUrl.isBlank() || token.isBlank()) {
+        val params = com.metrolist.music.pairing.RoofyPairingLinks.parseImportPair(uri)
+        if (params == null) {
             Toast.makeText(this, R.string.desktop_import_pairing_invalid, Toast.LENGTH_LONG).show()
             navController.navigate("settings/integrations/desktop_import") {
                 launchSingleTop = true
@@ -1684,8 +1671,8 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             dataStore.edit { settings ->
-                settings[DesktopImportEndpointUrlKey] = endpointUrl
-                settings[DesktopImportTokenKey] = token
+                settings[DesktopImportEndpointUrlKey] = params.endpointUrl
+                settings[DesktopImportTokenKey] = params.token
             }
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@MainActivity, R.string.desktop_import_paired, Toast.LENGTH_SHORT).show()

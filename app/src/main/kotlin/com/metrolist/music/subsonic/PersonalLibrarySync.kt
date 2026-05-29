@@ -7,6 +7,7 @@
 package com.metrolist.music.subsonic
 
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.db.entities.Event
 import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.db.entities.PlaylistSongMap
 import kotlinx.coroutines.Dispatchers
@@ -14,6 +15,7 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 data class PersonalLibraryPlaylistSyncResult(
     val importedPlaylists: Int,
@@ -24,6 +26,7 @@ data class PersonalLibraryPlaylistSyncResult(
 
 data class PersonalLibraryHistorySyncResult(
     val pushedScrobbles: Int,
+    val pulledPlays: Int,
     val skippedEvents: Int,
     val lastSyncedEpochMs: Long,
 )
@@ -234,12 +237,87 @@ object PersonalLibrarySync {
             )
         }
 
+    private val subsonicLastPlayedFormatters =
+        listOf(
+            DateTimeFormatter.ISO_OFFSET_DATE_TIME,
+            DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+            DateTimeFormatter.ISO_INSTANT,
+        )
+
+    private fun parseSubsonicLastPlayed(value: String?): LocalDateTime? {
+        val raw = value?.trim().orEmpty()
+        if (raw.isEmpty()) return null
+
+        runCatching {
+            return Instant.parse(raw).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        }
+
+        subsonicLastPlayedFormatters.forEach { formatter ->
+            runCatching {
+                return LocalDateTime.parse(raw, formatter)
+            }
+        }
+
+        return runCatching {
+            LocalDateTime.parse(raw.take(19))
+        }.getOrNull()
+    }
+
+    private suspend fun pullRemotePlayHistory(
+        database: MusicDatabase,
+        client: SubsonicClient,
+    ): Int {
+        val seenMediaIds = mutableSetOf<String>()
+        var imported = 0
+
+        suspend fun importSongPlay(song: SubsonicSong) {
+            val lastPlayed = parseSubsonicLastPlayed(song.lastPlayed) ?: return
+            if ((song.playCount ?: 0) <= 0) return
+            val mediaId = SubsonicClient.mediaId(song.id)
+            if (!seenMediaIds.add(mediaId)) return
+
+            database.withTransaction {
+                val metadata = song.toRoofyMetadata(client)
+                insert(metadata)
+                if (!hasSubsonicEventAt(mediaId, lastPlayed)) {
+                    insert(
+                        Event(
+                            songId = mediaId,
+                            timestamp = lastPlayed,
+                            playTime = (song.duration ?: 0).coerceAtLeast(0) * 1000L,
+                        ),
+                    )
+                    imported += 1
+                }
+            }
+        }
+
+        listOf("frequent", "recent").forEach { listType ->
+            runCatching {
+                client.getAlbumList2(listType).forEach { albumRef ->
+                    runCatching {
+                        client.getAlbum(albumRef.id).entry.forEach { song ->
+                            importSongPlay(song)
+                        }
+                    }
+                }
+            }
+        }
+
+        client.getStarred2().song.forEach { song ->
+            importSongPlay(song)
+        }
+
+        return imported
+    }
+
     suspend fun syncPlayHistory(
         database: MusicDatabase,
         client: SubsonicClient,
         lastSyncedEpochMs: Long,
     ): PersonalLibraryHistorySyncResult =
         withContext(Dispatchers.IO) {
+            val pulledPlays = pullRemotePlayHistory(database, client)
             val since =
                 Instant
                     .ofEpochMilli(lastSyncedEpochMs.coerceAtLeast(0))
@@ -295,6 +373,7 @@ object PersonalLibrarySync {
 
             PersonalLibraryHistorySyncResult(
                 pushedScrobbles = pushed,
+                pulledPlays = pulledPlays,
                 skippedEvents = skipped,
                 lastSyncedEpochMs = latestEpoch,
             )
