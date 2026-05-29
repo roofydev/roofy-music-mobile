@@ -25,7 +25,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -37,6 +36,7 @@ import com.metrolist.music.R
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.UpdateDownloadInstallPanel
 import com.metrolist.music.ui.theme.RetroPanel
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.ui.utils.backToMain
@@ -49,7 +49,6 @@ fun SettingsScreen(
     navController: NavController,
     latestVersionName: String,
 ) {
-    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val hasAndroidAuto = remember {
@@ -257,7 +256,7 @@ fun SettingsScreen(
                                     )
                                 },
                                 showBadge = true,
-                                onClick = { uriHandler.openUri(downloadUrl) }
+                                onClick = { navController.navigate("settings/updater") }
                             )
                         )
                     }
@@ -267,6 +266,7 @@ fun SettingsScreen(
     if (BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.VERSION_NAME) {
             Spacer(modifier = Modifier.height(16.dp))
             val releaseInfo = Updater.getCachedLatestRelease()
+            val panelDownloadUrl = releaseInfo?.let { Updater.getDownloadUrlForCurrentVariant(it) }
             if (releaseInfo != null) {
                 RetroPanel(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -282,6 +282,13 @@ fun SettingsScreen(
                             color = RetroTokens.TextSoft,
                             modifier = Modifier.padding(vertical = 2.dp)
                         )
+                        panelDownloadUrl?.let { url ->
+                            Spacer(modifier = Modifier.height(12.dp))
+                            UpdateDownloadInstallPanel(
+                                downloadUrl = url,
+                                versionLabel = latestVersionName,
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))

@@ -31,6 +31,7 @@ import com.metrolist.music.constants.*
 import com.metrolist.music.di.ApplicationScope
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.extensions.toInetSocketAddress
+import com.metrolist.music.utils.AppUpdateManager
 import com.metrolist.music.utils.CrashHandler
 import com.metrolist.music.utils.YtDlpStreamFallback
 import com.metrolist.music.utils.cipher.CipherDeobfuscator
@@ -68,6 +69,8 @@ class App :
 
         // Install crash handler first
         CrashHandler.install(this)
+
+        AppUpdateManager.initialize(this, applicationScope)
 
         // preferencesDataStore uses filesDir/datastore; proactive mkdir reduces failures on odd ROM states
         try {

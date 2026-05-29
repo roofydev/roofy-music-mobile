@@ -21,10 +21,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,6 +45,7 @@ import com.metrolist.music.constants.UpdateNotificationsEnabledKey
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
+import com.metrolist.music.ui.component.UpdateDownloadInstallPanel
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.Updater
 import com.metrolist.music.utils.rememberPreference
@@ -67,10 +68,22 @@ fun UpdaterScreen(
     var latestVersion by remember { mutableStateOf<String?>(null) }
     var showChangelog by remember { mutableStateOf(false) }
     var changelogContent by remember { mutableStateOf<String?>(null) }
+    var downloadUrl by remember { mutableStateOf<String?>(null) }
     var checkError by remember { mutableStateOf<String?>(null) }
     val failedToCheckUpdatesTemplate = stringResource(R.string.failed_to_check_updates)
 
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        Updater.getCachedLatestRelease()?.let { releaseInfo ->
+            if (Updater.isUpdateAvailable(BuildConfig.VERSION_NAME, releaseInfo.versionName)) {
+                latestVersion = releaseInfo.versionName
+                updateAvailable = true
+                changelogContent = releaseInfo.description
+                downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo)
+            }
+        }
+    }
 
     fun performManualCheck() {
         coroutineScope.launch {
@@ -84,6 +97,7 @@ fun UpdaterScreen(
                             latestVersion = releaseInfo.versionName
                             updateAvailable = hasUpdate
                             changelogContent = releaseInfo.description
+                            downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo)
                         }
                     }.onFailure {
                         checkError = String.format(failedToCheckUpdatesTemplate, it.message ?: "Unknown error")
@@ -219,6 +233,15 @@ fun UpdaterScreen(
         }
 
         if (updateAvailable && latestVersion != null) {
+            downloadUrl?.let { url ->
+                Spacer(Modifier.height(16.dp))
+                UpdateDownloadInstallPanel(
+                    downloadUrl = url,
+                    versionLabel = latestVersion!!,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = { showChangelog = !showChangelog },

@@ -250,6 +250,14 @@
     <string name="hide_changelog">Hide changelog</string>
     <string name="view_changelog">View changelog</string>
     <string name="failed_to_check_updates">Failed to check for updates: %s</string>
+    <string name="download_update">Download update</string>
+    <string name="install_update">Install update</string>
+    <string name="downloading_update">Downloading update…</string>
+    <string name="download_failed">Download failed</string>
+    <string name="install_unknown_apps_required">Allow installs from this app in Settings, then try again</string>
+    <string name="open_in_browser">Open in browser</string>
+    <string name="cancel_download">Cancel download</string>
+    <string name="update_ready_to_install">Update ready to install</string>
 
     <string name="all_time">All time</string>
     <string name="past_24_hours">Past 24 hours</string>

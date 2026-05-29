@@ -191,6 +191,9 @@ import com.metrolist.music.ui.theme.extractThemeColor
 import com.metrolist.music.ui.utils.appBarScrollBehavior
 import com.metrolist.music.ui.utils.resetHeightOffset
 import com.metrolist.music.utils.SyncUtils
+import com.metrolist.music.update.AppUpdateDownloadService
+import com.metrolist.music.utils.AppUpdateManager
+import com.metrolist.music.utils.InstallResult
 import com.metrolist.music.utils.Updater
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.get
@@ -227,6 +230,8 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_AUTO_START_RECOGNITION = "auto_start_recognition"
         const val EXTRA_WIDGET_TARGET_TYPE = "widget_target_type"
         const val EXTRA_WIDGET_TARGET_ID = "widget_target_id"
+        const val EXTRA_OPEN_UPDATER = "open_updater"
+        const val EXTRA_TRIGGER_UPDATE_INSTALL = "trigger_update_install"
     }
 
     @Inject
@@ -379,6 +384,7 @@ class MainActivity : ComponentActivity() {
         if (::navController.isInitialized) {
             handleWidgetTargetIntent(intent, navController)
             handleDeepLinkIntent(intent, navController)
+            handleUpdateIntent(intent, navController)
         } else {
             pendingIntent = intent
         }
@@ -496,12 +502,26 @@ class MainActivity : ComponentActivity() {
                                 if (hasUpdate && notifEnabled) {
                                     val downloadUrl = Updater.getDownloadUrlForCurrentVariant(releaseInfo)
                                     if (downloadUrl != null) {
-                                        val intent = Intent(Intent.ACTION_VIEW, downloadUrl.toUri())
-
-                                        val flags =
-                                            PendingIntent.FLAG_UPDATE_CURRENT or
-                                                (PendingIntent.FLAG_IMMUTABLE)
-                                        val pending = PendingIntent.getActivity(this@MainActivity, 1001, intent, flags)
+                                        val openUpdaterIntent =
+                                            Intent(this@MainActivity, MainActivity::class.java).apply {
+                                                putExtra(EXTRA_OPEN_UPDATER, true)
+                                                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                                            }
+                                        val pendingFlags =
+                                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                                        val openPending =
+                                            PendingIntent.getActivity(
+                                                this@MainActivity,
+                                                1001,
+                                                openUpdaterIntent,
+                                                pendingFlags,
+                                            )
+                                        val downloadPending =
+                                            AppUpdateDownloadService.createDownloadPendingIntent(
+                                                this@MainActivity,
+                                                downloadUrl,
+                                                releaseInfo.versionName,
+                                            )
 
                                         val notif =
                                             NotificationCompat
@@ -509,8 +529,13 @@ class MainActivity : ComponentActivity() {
                                                 .setSmallIcon(R.drawable.update)
                                                 .setContentTitle(getString(R.string.update_available_title))
                                                 .setContentText(releaseInfo.versionName)
-                                                .setContentIntent(pending)
+                                                .setContentIntent(openPending)
                                                 .setAutoCancel(true)
+                                                .addAction(
+                                                    R.drawable.download,
+                                                    getString(R.string.download_update),
+                                                    downloadPending,
+                                                )
                                                 .build()
 
                                         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -921,11 +946,13 @@ class MainActivity : ComponentActivity() {
                         handleWidgetTargetIntent(pendingIntent!!, navController)
                         handleRecognitionIntent(pendingIntent!!, navController)
                         handleDeepLinkIntent(pendingIntent!!, navController)
+                        handleUpdateIntent(pendingIntent!!, navController)
                         pendingIntent = null
                     } else {
                         handleWidgetTargetIntent(intent, navController)
                         handleRecognitionIntent(intent, navController)
                         handleDeepLinkIntent(intent, navController)
+                        handleUpdateIntent(intent, navController)
                     }
                 }
 
@@ -935,6 +962,7 @@ class MainActivity : ComponentActivity() {
                             handleWidgetTargetIntent(intent, navController)
                             handleRecognitionIntent(intent, navController)
                             handleDeepLinkIntent(intent, navController)
+                            handleUpdateIntent(intent, navController)
                         }
 
                     addOnNewIntentListener(listener)
@@ -1396,6 +1424,27 @@ class MainActivity : ComponentActivity() {
      * Handles the ACTION_RECOGNITION intent sent from the Music Recognizer Widget.
      * Always navigates to the recognition screen to show the result.
      */
+    private fun handleUpdateIntent(
+        intent: Intent,
+        navController: NavHostController,
+    ) {
+        if (intent.getBooleanExtra(EXTRA_OPEN_UPDATER, false)) {
+            intent.removeExtra(EXTRA_OPEN_UPDATER)
+            navController.navigate("settings/updater") {
+                launchSingleTop = true
+            }
+        }
+        if (intent.getBooleanExtra(EXTRA_TRIGGER_UPDATE_INSTALL, false)) {
+            intent.removeExtra(EXTRA_TRIGGER_UPDATE_INSTALL)
+            when (val result = AppUpdateManager.installUpdate(this)) {
+                InstallResult.Success -> Unit
+                InstallResult.BlockedUnknownSources ->
+                    startActivity(AppUpdateManager.createUnknownSourcesSettingsIntent(this))
+                is InstallResult.Failed -> Unit
+            }
+        }
+    }
+
     private fun handleRecognitionIntent(
         intent: Intent,
         navController: NavHostController,
