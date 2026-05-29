@@ -91,6 +91,7 @@ fun PersonalLibrarySettings(
     var syncingHistory by rememberSaveable { mutableStateOf(false) }
     var historySyncSummary by rememberSaveable { mutableStateOf("") }
     var historySyncEpochMs by rememberPreference(PersonalLibraryHistorySyncEpochMsKey, 0L)
+    var syncingAll by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf(emptyList<SubsonicSong>()) }
@@ -220,6 +221,93 @@ fun PersonalLibrarySettings(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                Text(
+                    text = stringResource(R.string.personal_library_sync_all_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                RetroButton(
+                    enabled =
+                        !syncingAll &&
+                            !syncingFavorites &&
+                            !syncingPlaylists &&
+                            !syncingHistory &&
+                            serverUrl.isNotBlank() &&
+                            username.isNotBlank() &&
+                            password.isNotBlank(),
+                    onClick = {
+                        syncingAll = true
+                        syncingFavorites = true
+                        syncingPlaylists = true
+                        syncingHistory = true
+                        favoriteSyncSummary = ""
+                        playlistSyncSummary = ""
+                        historySyncSummary = ""
+                        coroutineScope.launch {
+                            val client = SubsonicClient(
+                                PersonalLibraryCredentials(
+                                    serverUrl = serverUrl,
+                                    username = username,
+                                    password = password,
+                                )
+                            )
+                            val result = runCatching {
+                                val favorites = PersonalLibrarySync.syncFavorites(database, client)
+                                val playlists = PersonalLibrarySync.syncPlaylists(database, client)
+                                val history =
+                                    PersonalLibrarySync.syncPlayHistory(
+                                        database = database,
+                                        client = client,
+                                        lastSyncedEpochMs = historySyncEpochMs,
+                                    )
+                                Triple(favorites, playlists, history)
+                            }
+
+                            syncingAll = false
+                            syncingFavorites = false
+                            syncingPlaylists = false
+                            syncingHistory = false
+                            result
+                                .onSuccess { (favorites, playlists, history) ->
+                                    historySyncEpochMs = history.lastSyncedEpochMs
+                                    favoriteSyncSummary = context.getString(
+                                        R.string.personal_library_sync_summary,
+                                        favorites.remoteFavorites,
+                                        favorites.importedFavorites,
+                                        favorites.updatedFavorites,
+                                        favorites.pushedFavorites,
+                                    )
+                                    playlistSyncSummary = context.getString(
+                                        R.string.personal_library_sync_playlists_summary,
+                                        playlists.remotePlaylists,
+                                        playlists.importedPlaylists,
+                                        playlists.updatedPlaylists,
+                                        playlists.pushedPlaylists,
+                                    )
+                                    historySyncSummary = context.getString(
+                                        R.string.personal_library_sync_history_summary,
+                                        history.pushedScrobbles,
+                                        history.skippedEvents,
+                                    )
+                                }
+                                .onFailure {
+                                    Toast
+                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .show()
+                                }
+                        }
+                    },
+                ) {
+                    Text(
+                        if (syncingAll) {
+                            stringResource(R.string.personal_library_syncing)
+                        } else {
+                            stringResource(R.string.personal_library_sync_all)
+                        }
+                    )
+                }
 
                 RetroButton(
                     enabled = !syncingFavorites && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank(),

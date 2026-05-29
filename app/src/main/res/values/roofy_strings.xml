@@ -688,6 +688,8 @@
     <string name="personal_library_pairing_invalid">Pairing link is missing server credentials</string>
     <string name="personal_library_sync_title">Sync favorites</string>
     <string name="personal_library_sync_desc">Merge starred Navidrome songs with liked Personal Library songs saved on this phone.</string>
+    <string name="personal_library_sync_all">Sync all library state</string>
+    <string name="personal_library_sync_all_desc">Run favorites, playlists, and play history sync in one step.</string>
     <string name="personal_library_sync_favorites">Sync favorites</string>
     <string name="personal_library_syncing">Syncing...</string>
     <string name="personal_library_sync_summary">Remote: %1$d, imported: %2$d, updated: %3$d, pushed: %4$d</string>
