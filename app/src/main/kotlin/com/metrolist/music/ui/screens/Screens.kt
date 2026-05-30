@@ -17,6 +17,8 @@ sealed class Screens(
     @DrawableRes val iconIdInactive: Int,
     @DrawableRes val iconIdActive: Int,
     val route: String,
+    /** Opens the full player instead of navigating to a list screen. */
+    val opensPlayer: Boolean = false,
 ) {
     object Home : Screens(
         titleId = R.string.home,
@@ -39,6 +41,14 @@ sealed class Screens(
         route = "listen_together"
     )
 
+    object NowPlaying : Screens(
+        titleId = R.string.now_playing,
+        iconIdInactive = R.drawable.music_note,
+        iconIdActive = R.drawable.music_note,
+        route = "now_playing_tab",
+        opensPlayer = true,
+    )
+
     object Library : Screens(
         titleId = R.string.filter_library,
         iconIdInactive = R.drawable.library_music_outlined,
@@ -47,6 +57,10 @@ sealed class Screens(
     )
 
     companion object {
-        val MainScreens = listOf(Home, Search, ListenTogether, Library)
+        /** Default bottom nav: Home, Search, Library, Now Playing (per product UX plan). */
+        val MainScreens = listOf(Home, Search, Library, NowPlaying)
+
+        /** Full set when Listen Together is shown in the bottom bar instead of the top bar. */
+        val MainScreensWithListenTogether = listOf(Home, Search, ListenTogether, Library)
     }
 }

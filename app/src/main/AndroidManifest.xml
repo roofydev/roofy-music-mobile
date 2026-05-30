@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Microphone feature for music recognition (not required) -->
@@ -54,6 +57,11 @@
             android:theme="@style/Theme.RoofyMusic"
             android:excludeFromRecents="true"
             android:process=":crash" />
+
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="fullSensor"
+            tools:replace="screenOrientation" />
 
         <activity
             android:name=".MainActivity"
@@ -111,6 +119,18 @@
                 <data android:scheme="roofymusic" />
                 <data android:host="pair" />
                 <data android:pathPrefix="/import" />
+            </intent-filter>
+
+            <!-- Unified phone link (library + save-to-desktop) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="roofymusic" />
+                <data android:host="pair" />
+                <data android:pathPrefix="/device" />
             </intent-filter>
 
             <!-- Youtube filter -->

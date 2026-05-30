@@ -33,6 +33,8 @@ import com.metrolist.music.ui.screens.artist.ArtistSongsScreen
 import com.metrolist.music.ui.screens.equalizer.EqScreen
 import com.metrolist.music.ui.screens.equalizer.wizard.WizardScreen
 import com.metrolist.music.ui.screens.library.LibraryScreen
+import com.metrolist.music.ui.screens.link.LinkComputerScreen
+import com.metrolist.music.ui.screens.link.LinkComputerSuccessScreen
 import com.metrolist.music.ui.screens.playlist.AutoPlaylistScreen
 import com.metrolist.music.ui.screens.playlist.CachePlaylistScreen
 import com.metrolist.music.ui.screens.playlist.LocalPlaylistScreen
@@ -402,12 +404,24 @@ fun NavGraphBuilder.navigationBuilder(
         LastFMSettings(navController)
     }
 
+    composable("link_computer") {
+        LinkComputerScreen(navController)
+    }
+
+    composable("link_computer/success") {
+        LinkComputerSuccessScreen(navController)
+    }
+
     composable("settings/integrations/personal_library") {
         PersonalLibrarySettings(navController)
     }
 
     composable("settings/integrations/desktop_import") {
         DesktopImportSettings(navController)
+    }
+
+    composable("settings/integrations/my_computer") {
+        LinkComputerScreen(navController)
     }
 
     composable(route = "settings/integrations/listen_together") {

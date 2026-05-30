@@ -80,6 +80,8 @@ object DesktopHandoffClient {
                     }
                     parser.decodeFromString(HandoffSnapshot.serializer(), body)
                 }
+            }.recoverCatching { error ->
+                throw DesktopConnect.mapConnectionError(error, endpointUrl)
             }
         }
 
@@ -108,6 +110,8 @@ object DesktopHandoffClient {
                         )
                     }
                 }
+            }.recoverCatching { error ->
+                throw DesktopConnect.mapConnectionError(error, endpointUrl)
             }
         }
 

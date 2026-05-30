@@ -81,6 +81,8 @@ import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.ExoDownloadService
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.productux.TrackActionResolver
+import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.component.ListDialog
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.Material3MenuGroup
@@ -290,8 +292,17 @@ fun YouTubeSongMenu(
 
     val isGuest = listenTogetherManager?.isInRoom == true && !listenTogetherManager.isHost
     val desktopImportQueuedText = stringResource(R.string.desktop_import_queued)
-    val desktopImportFailedText = stringResource(R.string.desktop_import_failed)
-    val desktopImportNotConfiguredText = stringResource(R.string.desktop_import_not_configured)
+    val isSavingDownload =
+        download?.state == Download.STATE_QUEUED || download?.state == Download.STATE_DOWNLOADING
+    val trackActions =
+        TrackActionResolver.resolveForYouTubeTrack(
+            isPersonalLibraryTrack = false,
+            isSaving = isSavingDownload,
+            hasVideo = song.id.isNotBlank(),
+        )
+    val showAddToMyLibrary = TrackActionResolver.shouldShowAddToLibrary(trackActions)
+    val showSaveOffline = TrackActionResolver.shouldShowSaveOffline(trackActions)
+    val showWatchVideo = TrackActionResolver.shouldShowWatchVideo(trackActions)
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -535,63 +546,90 @@ fun YouTubeSongMenu(
                             }
                         )
                     )
-                    add(
-                        Material3MenuItemData(
-                            title = { Text(text = stringResource(R.string.add_to_my_library)) },
-                            description = { Text(text = stringResource(R.string.add_to_my_library_desc)) },
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.upload),
-                                    contentDescription = null,
-                                )
-                            },
-                            onClick = {
-                                if (desktopImportEndpointUrl.isBlank() || desktopImportToken.isBlank()) {
-                                    Toast
-                                        .makeText(context, desktopImportNotConfiguredText, Toast.LENGTH_SHORT)
-                                        .show()
-                                    navController.navigate("settings/integrations/desktop_import")
-                                    onDismiss()
-                                } else {
-                                    coroutineScope.launch {
-                                        val trackUrl =
-                                            song.shareLink.ifBlank {
-                                                "https://music.youtube.com/watch?v=${song.id}"
-                                            }
-                                        DesktopImportClient
-                                            .sendImport(
-                                                endpointUrl = desktopImportEndpointUrl,
-                                                token = desktopImportToken,
-                                                track =
-                                                    DesktopImportTrack(
-                                                        artist = song.artists.firstOrNull()?.name,
-                                                        artists = song.artists.map { it.name },
-                                                        thumbnailUrl = song.thumbnail,
-                                                        title = song.title,
-                                                        url = trackUrl,
-                                                        videoId = song.id,
-                                                    ),
+                    if (showAddToMyLibrary) {
+                        add(
+                            Material3MenuItemData(
+                                title = { Text(text = stringResource(R.string.add_to_my_library)) },
+                                description = { Text(text = stringResource(R.string.add_to_my_library_desc)) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.upload),
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    if (desktopImportEndpointUrl.isBlank() || desktopImportToken.isBlank()) {
+                                        Toast
+                                            .makeText(
+                                                context,
+                                                UserFacingErrors.desktopImportMessage(context, null),
+                                                Toast.LENGTH_SHORT,
                                             )
-                                            .onSuccess {
-                                                Toast
-                                                    .makeText(context, desktopImportQueuedText, Toast.LENGTH_SHORT)
-                                                    .show()
-                                            }
-                                            .onFailure {
-                                                Toast
-                                                    .makeText(
-                                                        context,
-                                                        "$desktopImportFailedText: ${it.message}",
-                                                        Toast.LENGTH_LONG,
-                                                    )
-                                                    .show()
-                                            }
+                                            .show()
+                                        navController.navigate("settings/integrations/desktop_import")
+                                        onDismiss()
+                                    } else {
+                                        coroutineScope.launch {
+                                            val trackUrl =
+                                                song.shareLink.ifBlank {
+                                                    "https://music.youtube.com/watch?v=${song.id}"
+                                                }
+                                            DesktopImportClient
+                                                .sendImport(
+                                                    endpointUrl = desktopImportEndpointUrl,
+                                                    token = desktopImportToken,
+                                                    track =
+                                                        DesktopImportTrack(
+                                                            artist = song.artists.firstOrNull()?.name,
+                                                            artists = song.artists.map { it.name },
+                                                            thumbnailUrl = song.thumbnail,
+                                                            title = song.title,
+                                                            url = trackUrl,
+                                                            videoId = song.id,
+                                                        ),
+                                                )
+                                                .onSuccess {
+                                                    Toast
+                                                        .makeText(context, desktopImportQueuedText, Toast.LENGTH_SHORT)
+                                                        .show()
+                                                }
+                                                .onFailure { error ->
+                                                    Toast
+                                                        .makeText(
+                                                            context,
+                                                            UserFacingErrors.desktopImportMessage(context, error),
+                                                            Toast.LENGTH_LONG,
+                                                        )
+                                                        .show()
+                                                }
+                                        }
+                                        onDismiss()
                                     }
+                                }
+                            )
+                        )
+                    }
+                    if (showWatchVideo) {
+                        add(
+                            Material3MenuItemData(
+                                title = { Text(text = stringResource(R.string.watch_video)) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.play),
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    val url =
+                                        song.shareLink.ifBlank {
+                                            "https://music.youtube.com/watch?v=${song.id}"
+                                        }
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
                                     onDismiss()
                                 }
-                            }
+                            )
                         )
-                    )
+                    }
                     add(
                         Material3MenuItemData(
                             title = {
@@ -634,6 +672,7 @@ fun YouTubeSongMenu(
             )
         }
 
+        if (showSaveOffline) {
         item { Spacer(modifier = Modifier.height(12.dp)) }
 
         item {
@@ -713,6 +752,7 @@ fun YouTubeSongMenu(
                     }
                 )
             )
+        }
         }
 
         item { Spacer(modifier = Modifier.height(12.dp)) }

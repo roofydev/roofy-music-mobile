@@ -45,6 +45,46 @@ class RoofyPairingLinksTest {
     }
 
     @Test
+    fun parseDevicePairQuery_validParams() {
+        val params =
+            RoofyPairingLinks.parseDevicePair(
+                android.net.Uri.parse(
+                    "roofymusic://pair/device" +
+                        "?serverUrl=http%3A%2F%2F192.168.1.2%3A4533" +
+                        "&username=roofy" +
+                        "&password=secret" +
+                        "&endpointUrl=http%3A%2F%2F192.168.1.2%3A8765" +
+                        "&token=abc123",
+                ),
+            )
+        assertNotNull(params)
+        assertEquals("http://192.168.1.2:4533", params!!.serverUrl)
+        assertEquals("roofy", params.username)
+        assertEquals("secret", params.password)
+        assertEquals("http://192.168.1.2:8765", params.endpointUrl)
+        assertEquals("abc123", params.token)
+        assertNull(params.webControlUrl)
+    }
+
+    @Test
+    fun parseDevicePairQuery_includesWebControlUrl() {
+        val params =
+            RoofyPairingLinks.parseDevicePair(
+                android.net.Uri.parse(
+                    "roofymusic://pair/device" +
+                        "?serverUrl=http%3A%2F%2F192.168.1.2%3A4533" +
+                        "&username=roofy" +
+                        "&password=secret" +
+                        "&endpointUrl=http%3A%2F%2F192.168.1.2%3A8765" +
+                        "&token=abc123" +
+                        "&webControlUrl=http%3A%2F%2F192.168.1.2%3A4333%2F%3Ftoken%3Dremote",
+                ),
+            )
+        assertNotNull(params)
+        assertEquals("http://192.168.1.2:4333/?token=remote", params!!.webControlUrl)
+    }
+
+    @Test
     fun parseImportPairQuery_validParams() {
         val params =
             RoofyPairingLinks.parseImportPairQuery(

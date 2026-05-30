@@ -710,9 +710,9 @@ class MainActivity : ComponentActivity() {
                 val navigationItems =
                     remember(listenTogetherInTopBar) {
                         if (listenTogetherInTopBar) {
-                            Screens.MainScreens.filter { it != Screens.ListenTogether }
-                        } else {
                             Screens.MainScreens
+                        } else {
+                            Screens.MainScreensWithListenTogether
                         }
                     }
                 val routeIndexMap = remember(navigationItems) {
@@ -1126,10 +1126,14 @@ class MainActivity : ComponentActivity() {
                                     currentBackStackEntry,
                                 ) {
                                     { screen: Screens, isSelected: Boolean ->
-                                        if (playerBottomSheetState.isExpanded) {
+                                        if (screen.opensPlayer) {
+                                            playerBottomSheetState.expandSoft()
+                                        } else if (playerBottomSheetState.isExpanded) {
                                             playerBottomSheetState.collapseSoft()
                                         }
-                                        if (isSelected) {
+                                        if (screen.opensPlayer) {
+                                            // Player tab only expands the sheet; no route change.
+                                        } else if (isSelected) {
                                             val targetEntry =
                                                 try {
                                                     val route = navController.currentBackStackEntry?.destination?.route
@@ -1271,22 +1275,29 @@ class MainActivity : ComponentActivity() {
                             val onRailItemClick: (Screens, Boolean) -> Unit =
                                 remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
                                     { screen: Screens, isSelected: Boolean ->
-                                        if (playerBottomSheetState.isExpanded) {
-                                            playerBottomSheetState.collapseSoft()
-                                        }
-
-                                        if (isSelected) {
-                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                            coroutineScope.launch {
-                                                topAppBarScrollBehavior.state.resetHeightOffset()
-                                            }
+                                        if (screen.opensPlayer) {
+                                            playerBottomSheetState.expandSoft()
                                         } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) {
-                                                    saveState = true
+                                            if (playerBottomSheetState.isExpanded) {
+                                                playerBottomSheetState.collapseSoft()
+                                            }
+
+                                            if (isSelected) {
+                                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                    "scrollToTop",
+                                                    true,
+                                                )
+                                                coroutineScope.launch {
+                                                    topAppBarScrollBehavior.state.resetHeightOffset()
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
+                                            } else {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
                                         }
                                     }
@@ -1518,6 +1529,7 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra(Intent.EXTRA_TEXT)
         val coroutineScope = lifecycle.coroutineScope
 
+        if (handleDevicePairing(uri, navController)) return
         if (handlePersonalLibraryPairing(uri, navController)) return
         if (handleDesktopImportPairing(uri, navController)) return
 
@@ -1619,6 +1631,38 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun handleDevicePairing(
+        uri: android.net.Uri,
+        navController: NavHostController,
+    ): Boolean {
+        if (!com.metrolist.music.pairing.RoofyPairingLinks.isDevicePairLink(uri)) return false
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val ok =
+                com.metrolist.music.pairing.PhoneLinkSetup.applyPairingUri(
+                    context = this@MainActivity,
+                    dataStore = dataStore,
+                    uri = uri,
+                )
+            if (!ok) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, R.string.phone_link_pairing_invalid, Toast.LENGTH_LONG).show()
+                    navController.navigate("link_computer") {
+                        launchSingleTop = true
+                    }
+                }
+                return@launch
+            }
+            withContext(Dispatchers.Main) {
+                navController.navigate("link_computer/success") {
+                    launchSingleTop = true
+                }
+            }
+        }
+
+        return true
     }
 
     private fun handlePersonalLibraryPairing(

@@ -114,6 +114,15 @@ fun PersonalLibrarySettings(
             ),
         )
 
+        if (serverUrl.isBlank()) {
+            RetroButton(
+                onClick = { navController.navigate("link_computer") },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(stringResource(R.string.phone_link_scan_qr))
+            }
+        }
+
         RetroSurface(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(16.dp),

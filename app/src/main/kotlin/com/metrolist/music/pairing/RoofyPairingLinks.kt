@@ -19,6 +19,15 @@ data class ImportPairingParams(
     val token: String,
 )
 
+data class DevicePairingParams(
+    val serverUrl: String,
+    val username: String,
+    val password: String,
+    val endpointUrl: String,
+    val token: String,
+    val webControlUrl: String? = null,
+)
+
 object RoofyPairingLinks {
     fun isSubsonicPairLink(uri: Uri): Boolean =
         uri.scheme.equals("roofymusic", ignoreCase = true) &&
@@ -29,6 +38,11 @@ object RoofyPairingLinks {
         uri.scheme.equals("roofymusic", ignoreCase = true) &&
             uri.host.equals("pair", ignoreCase = true) &&
             uri.pathSegments.firstOrNull().equals("import", ignoreCase = true)
+
+    fun isDevicePairLink(uri: Uri): Boolean =
+        uri.scheme.equals("roofymusic", ignoreCase = true) &&
+            uri.host.equals("pair", ignoreCase = true) &&
+            uri.pathSegments.firstOrNull().equals("device", ignoreCase = true)
 
     fun parseSubsonicPair(uri: Uri): SubsonicPairingParams? {
         if (!isSubsonicPairLink(uri)) return null
@@ -58,6 +72,30 @@ object RoofyPairingLinks {
         return parseImportPairQuery(
             endpointUrl = uri.getQueryParameter("endpointUrl"),
             token = uri.getQueryParameter("token"),
+        )
+    }
+
+    fun parseDevicePair(uri: Uri): DevicePairingParams? {
+        if (!isDevicePairLink(uri)) return null
+        val subsonic =
+            parseSubsonicPairQuery(
+                serverUrl = uri.getQueryParameter("serverUrl"),
+                username = uri.getQueryParameter("username"),
+                password = uri.getQueryParameter("password"),
+            ) ?: return null
+        val import =
+            parseImportPairQuery(
+                endpointUrl = uri.getQueryParameter("endpointUrl"),
+                token = uri.getQueryParameter("token"),
+            ) ?: return null
+        val webControlUrl = uri.getQueryParameter("webControlUrl")?.trim().orEmpty().ifBlank { null }
+        return DevicePairingParams(
+            serverUrl = subsonic.serverUrl,
+            username = subsonic.username,
+            password = subsonic.password,
+            endpointUrl = import.endpointUrl,
+            token = import.token,
+            webControlUrl = webControlUrl,
         )
     }
 

@@ -53,7 +53,7 @@ object HandoffPlayback {
         playerConnection: PlayerConnection,
         endpointUrl: String,
         token: String,
-    ) {
+    ): String {
         val snapshot =
             withContext(Dispatchers.Main) {
                 buildSnapshot(playerConnection)
@@ -61,9 +61,13 @@ object HandoffPlayback {
         if (snapshot.nowPlaying == null) {
             throw IllegalStateException("Nothing is playing on this device.")
         }
-        withContext(Dispatchers.IO) {
-            DesktopHandoffClient.pushState(endpointUrl, token, snapshot).getOrThrow()
-        }
+        val liveEndpoint =
+            withContext(Dispatchers.IO) {
+                val resolved = DesktopConnect.resolveLiveEndpoint(endpointUrl, token).getOrThrow()
+                DesktopHandoffClient.pushState(resolved, token, snapshot).getOrThrow()
+                resolved
+            }
+        return liveEndpoint
     }
 
     suspend fun continueFromDesktop(
@@ -72,10 +76,14 @@ object HandoffPlayback {
         endpointUrl: String,
         token: String,
         personalLibraryCredentials: PersonalLibraryCredentials?,
-    ) {
+    ): String {
+        val liveEndpoint =
+            withContext(Dispatchers.IO) {
+                DesktopConnect.resolveLiveEndpoint(endpointUrl, token).getOrThrow()
+            }
         val snapshot =
             withContext(Dispatchers.IO) {
-                DesktopHandoffClient.fetchState(endpointUrl, token).getOrThrow()
+                DesktopHandoffClient.fetchState(liveEndpoint, token).getOrThrow()
             }
         val tracks = listOfNotNull(snapshot.nowPlaying) + snapshot.queue
         if (tracks.isEmpty()) {
@@ -113,6 +121,7 @@ object HandoffPlayback {
                 playerConnection.pause()
             }
         }
+        return liveEndpoint
     }
 
     private suspend fun resolveTrack(

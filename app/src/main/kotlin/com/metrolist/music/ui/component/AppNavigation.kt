@@ -66,6 +66,8 @@ private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigati
     if (screenRoute == "search_input" &&
         (currentRoute.startsWith("search/") || currentRoute == "search/{query}")) return true
 
+    if (screenRoute == "now_playing_tab") return false
+
     return false
 }
 

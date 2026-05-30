@@ -1,0 +1,437 @@
+/**
+ * Metrolist Project (C) 2026
+ * Modified for Roofy Music (C) 2026
+ * Licensed under GPL-3.0 | See git history for contributors
+ */
+
+package com.metrolist.music.ui.devices
+
+import android.widget.Toast
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.edit
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavController
+import com.metrolist.music.LocalDatabase
+import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.R
+import com.metrolist.music.constants.DesktopImportEndpointUrlKey
+import com.metrolist.music.constants.DesktopImportTokenKey
+import com.metrolist.music.desktopimport.DesktopConnect
+import com.metrolist.music.desktopimport.DesktopHandoffClient
+import com.metrolist.music.desktopimport.HandoffPlayback
+import com.metrolist.music.desktopimport.HandoffSnapshot
+import com.metrolist.music.subsonic.personalLibraryCredentials
+import com.metrolist.music.ui.component.BottomSheetState
+import com.metrolist.music.utils.dataStore
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.ui.theme.RetroTokens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+@Composable
+fun ColumnScope.ListenOnSheet(
+    onDismiss: () -> Unit,
+    navController: NavController,
+    playerBottomSheetState: BottomSheetState? = null,
+) {
+    val context = LocalContext.current
+    val database = LocalDatabase.current
+    val playerConnection = LocalPlayerConnection.current
+    val lifecycleScope = LocalLifecycleOwner.current.lifecycleScope
+
+    val endpointUrl by rememberPreference(DesktopImportEndpointUrlKey, "")
+    val token by rememberPreference(DesktopImportTokenKey, "")
+    val isPaired = endpointUrl.isNotBlank() && token.isNotBlank()
+
+    var desktopSnapshot by remember { mutableStateOf<HandoffSnapshot?>(null) }
+    var desktopReachable by remember { mutableStateOf(false) }
+    var isProbing by remember(isPaired) { mutableStateOf(isPaired) }
+    var isTransferring by remember { mutableStateOf(false) }
+
+    val successText = stringResource(R.string.listen_on_success)
+    val failedText = stringResource(R.string.listen_on_failed)
+    val switchingText = stringResource(R.string.listen_on_switching)
+    val nowPlayingOnComputer = stringResource(R.string.listen_on_now_playing_on_computer)
+    val nowPlayingOnPhone = stringResource(R.string.listen_on_now_playing_on_phone)
+
+    LaunchedEffect(endpointUrl, token, isPaired) {
+        if (!isPaired) {
+            isProbing = false
+            desktopSnapshot = null
+            desktopReachable = false
+            return@LaunchedEffect
+        }
+        isProbing = true
+        val result =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val liveEndpoint = DesktopConnect.resolveLiveEndpoint(endpointUrl, token).getOrThrow()
+                    DesktopHandoffClient.fetchState(liveEndpoint, token).getOrThrow()
+                }
+            }
+        result
+            .onSuccess { snapshot ->
+                desktopSnapshot = snapshot
+                desktopReachable = true
+            }
+            .onFailure {
+                desktopSnapshot = null
+                desktopReachable = false
+            }
+        isProbing = false
+    }
+
+    val phoneHasMedia = playerConnection?.player?.currentMediaItem != null
+    val phoneIsPlaying = playerConnection?.player?.isPlaying == true
+    val desktopHasMedia = desktopSnapshot?.nowPlaying != null
+    val desktopIsPlaying = desktopSnapshot?.playbackStatus.equals("playing", ignoreCase = true)
+
+    val activeOnPhone =
+        when {
+            phoneIsPlaying -> true
+            desktopIsPlaying -> false
+            phoneHasMedia -> true
+            desktopHasMedia -> false
+            else -> true
+        }
+
+    val statusLine =
+        when {
+            isProbing -> stringResource(R.string.listen_on_checking)
+            !isPaired -> stringResource(R.string.listen_on_connect_prompt)
+            activeOnPhone && phoneHasMedia ->
+                stringResource(R.string.listen_on_status_playing_here, stringResource(R.string.listen_on_this_phone))
+            !activeOnPhone && desktopHasMedia ->
+                stringResource(R.string.listen_on_status_playing_here, stringResource(R.string.listen_on_this_computer))
+            else -> stringResource(R.string.listen_on_status_pick_device)
+        }
+
+    Text(
+        text = stringResource(R.string.listen_on_title),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.SemiBold,
+        color = RetroTokens.Text,
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    Text(
+        text = statusLine,
+        style = MaterialTheme.typography.bodyMedium,
+        color = RetroTokens.TextMuted,
+    )
+    Spacer(modifier = Modifier.height(20.dp))
+
+    if (!isPaired) {
+        Text(
+            text = stringResource(R.string.listen_on_connect_body),
+            style = MaterialTheme.typography.bodyMedium,
+            color = RetroTokens.TextMuted,
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        FilledTonalButton(
+            onClick = {
+                onDismiss()
+                navController.navigate("link_computer")
+            },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.listen_on_connect_button))
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+        return
+    }
+
+    if (isProbing) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 28.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                strokeWidth = 2.dp,
+                color = RetroTokens.Active,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        return
+    }
+
+    ListenOnDeviceRow(
+        title = stringResource(R.string.listen_on_this_phone),
+        subtitle =
+            when {
+                activeOnPhone && phoneHasMedia -> stringResource(R.string.listen_on_playing_here)
+                phoneHasMedia -> stringResource(R.string.listen_on_ready)
+                else -> stringResource(R.string.listen_on_tap_to_play_here)
+            },
+        iconRes = R.drawable.listen_on,
+        isActive = activeOnPhone && phoneHasMedia,
+        enabled = !isTransferring,
+        onClick = {
+            if (activeOnPhone && phoneHasMedia) {
+                onDismiss()
+                return@ListenOnDeviceRow
+            }
+            if (!desktopHasMedia) {
+                Toast.makeText(context, R.string.listen_on_nothing_on_computer, Toast.LENGTH_SHORT).show()
+                return@ListenOnDeviceRow
+            }
+            val connection = playerConnection ?: return@ListenOnDeviceRow
+            isTransferring = true
+            Toast.makeText(context, switchingText, Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch {
+                val result =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            HandoffPlayback.continueFromDesktop(
+                                database = database,
+                                playerConnection = connection,
+                                endpointUrl = endpointUrl,
+                                token = token,
+                                personalLibraryCredentials = context.personalLibraryCredentials(),
+                            )
+                        }
+                    }
+                isTransferring = false
+                result
+                    .onSuccess { refreshedEndpoint ->
+                        if (refreshedEndpoint != endpointUrl.trim().trimEnd('/')) {
+                            context.dataStore.edit { settings ->
+                                settings[DesktopImportEndpointUrlKey] = refreshedEndpoint
+                            }
+                        }
+                        Toast.makeText(context, nowPlayingOnPhone, Toast.LENGTH_SHORT).show()
+                        playerBottomSheetState?.collapseSoft()
+                        onDismiss()
+                    }
+                    .onFailure { error ->
+                        Toast
+                            .makeText(
+                                context,
+                                error.message ?: failedText,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                    }
+            }
+        },
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    ListenOnDeviceRow(
+        title = stringResource(R.string.listen_on_this_computer),
+        subtitle =
+            when {
+                !desktopReachable -> stringResource(R.string.listen_on_computer_unreachable)
+                activeOnPhone && !desktopHasMedia -> stringResource(R.string.listen_on_computer_idle)
+                !activeOnPhone && desktopHasMedia -> stringResource(R.string.listen_on_playing_here)
+                desktopHasMedia -> stringResource(R.string.listen_on_ready)
+                else -> stringResource(R.string.listen_on_tap_to_play_here)
+            },
+        iconRes = R.drawable.sync,
+        isActive = !activeOnPhone && desktopHasMedia,
+        enabled = !isTransferring && desktopReachable,
+        onClick = {
+            if (!activeOnPhone && desktopHasMedia) {
+                onDismiss()
+                return@ListenOnDeviceRow
+            }
+            if (!phoneHasMedia) {
+                Toast.makeText(context, R.string.listen_on_nothing_on_phone, Toast.LENGTH_SHORT).show()
+                return@ListenOnDeviceRow
+            }
+            if (!desktopReachable) {
+                Toast.makeText(context, R.string.listen_on_computer_unreachable, Toast.LENGTH_LONG).show()
+                return@ListenOnDeviceRow
+            }
+            val connection = playerConnection ?: return@ListenOnDeviceRow
+            isTransferring = true
+            Toast.makeText(context, switchingText, Toast.LENGTH_SHORT).show()
+            lifecycleScope.launch {
+                val result =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            HandoffPlayback.continueOnDesktop(
+                                playerConnection = connection,
+                                endpointUrl = endpointUrl,
+                                token = token,
+                            )
+                        }
+                    }
+                isTransferring = false
+                result
+                    .onSuccess { refreshedEndpoint ->
+                        if (refreshedEndpoint != endpointUrl.trim().trimEnd('/')) {
+                            context.dataStore.edit { settings ->
+                                settings[DesktopImportEndpointUrlKey] = refreshedEndpoint
+                            }
+                        }
+                        connection.player.pause()
+                        Toast.makeText(context, nowPlayingOnComputer, Toast.LENGTH_SHORT).show()
+                        onDismiss()
+                    }
+                    .onFailure { error ->
+                        Toast
+                            .makeText(
+                                context,
+                                error.message ?: failedText,
+                                Toast.LENGTH_LONG,
+                            ).show()
+                    }
+            }
+        },
+    )
+
+    if (isTransferring) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = switchingText,
+            style = MaterialTheme.typography.bodySmall,
+            color = RetroTokens.TextMuted,
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+        )
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+    HorizontalDivider(color = RetroTokens.BorderMuted)
+    Spacer(modifier = Modifier.height(12.dp))
+
+    Text(
+        text = stringResource(R.string.listen_on_manage_devices),
+        style = MaterialTheme.typography.bodyMedium,
+        color = RetroTokens.TextMuted,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable {
+                    onDismiss()
+                    navController.navigate("link_computer")
+                }
+                .padding(vertical = 10.dp, horizontal = 4.dp),
+    )
+
+    Spacer(modifier = Modifier.height(12.dp))
+}
+
+@Composable
+private fun ListenOnDeviceRow(
+    title: String,
+    subtitle: String,
+    iconRes: Int,
+    isActive: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val rowAlpha = if (enabled) 1f else 0.45f
+    val shape = RoundedCornerShape(12.dp)
+    val background =
+        when {
+            isActive -> RetroTokens.Active.copy(alpha = 0.14f)
+            else -> Color.Transparent
+        }
+
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .alpha(rowAlpha)
+                .clip(shape)
+                .background(background)
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(
+            painter = painterResource(iconRes),
+            contentDescription = null,
+            tint = if (isActive) RetroTokens.Active else RetroTokens.Text,
+            modifier = Modifier.size(24.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = RetroTokens.Text,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = RetroTokens.TextMuted,
+            )
+        }
+        if (isActive) {
+            PlayingIndicator()
+        }
+    }
+}
+
+@Composable
+private fun PlayingIndicator() {
+    val transition = rememberInfiniteTransition(label = "listenOnPlaying")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(700, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "listenOnPlayingAlpha",
+    )
+    Box(
+        modifier =
+            Modifier
+                .size(10.dp)
+                .alpha(alpha)
+                .clip(CircleShape)
+                .background(RetroTokens.Active),
+    )
+}

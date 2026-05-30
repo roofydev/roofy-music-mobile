@@ -57,9 +57,17 @@ fun IntegrationScreen(
                     }
                 ),
                 IntegrationCardItem(
+                    icon = painterResource(R.drawable.sync),
+                    title = { Text(stringResource(R.string.my_computer)) },
+                    description = { Text(stringResource(R.string.my_computer_integration_desc)) },
+                    onClick = {
+                        navController.navigate("settings/integrations/my_computer")
+                    }
+                ),
+                IntegrationCardItem(
                     icon = painterResource(R.drawable.music_note),
                     title = { Text(stringResource(R.string.personal_library)) },
-                    description = { Text(stringResource(R.string.personal_library_integration_desc)) },
+                    description = { Text(stringResource(R.string.personal_library_advanced_desc)) },
                     onClick = {
                         navController.navigate("settings/integrations/personal_library")
                     }
@@ -67,7 +75,7 @@ fun IntegrationScreen(
                 IntegrationCardItem(
                     icon = painterResource(R.drawable.upload),
                     title = { Text(stringResource(R.string.desktop_import)) },
-                    description = { Text(stringResource(R.string.desktop_import_integration_desc)) },
+                    description = { Text(stringResource(R.string.desktop_import_advanced_desc)) },
                     onClick = {
                         navController.navigate("settings/integrations/desktop_import")
                     }
