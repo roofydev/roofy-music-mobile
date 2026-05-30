@@ -10,7 +10,7 @@
         <item quantity="other">%d തിരഞ്ഞെടുത്തു</item>
     </plurals>
     <string name="search">തിരയുക</string>
-    <string name="search_yt_music">യൂട്യൂബ് സംഗീതം തിരയുക…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">ലൈബ്രറിയിൽ തിരയുക…</string>
     <string name="filter_all">എല്ലാം</string>
     <string name="filter_songs">പാട്ടുകൾ</string>
@@ -274,7 +274,7 @@
     <string name="enable_kugou">KuGou വരികൾ ഓൺ ആക്കുക</string>
     <string name="imported_playlist">കൊണ്ടുവന്ന പ്ലേലിസ്റ്റ്</string>
     <string name="discord_integration">Discord യോജിപ്പിക്കുക</string>
-    <string name="enable_discord_rpc">റിച്ഛ് പ്രെസെൻസ് ഓൺ ആക്കുക</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="new_version_available">പുതിയ വേർഷൻ ലഭ്യമാണ്</string>
     <string name="translation_models">വിവർത്തന പദ്ധതികൾ</string>
     <string name="clear_translation_models">വിവർത്തന പദ്ധതികൾ കളയുക</string>

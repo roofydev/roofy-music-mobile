@@ -26,7 +26,7 @@
     <string name="most_played_artists">Najczęściej słuchani artyści</string>
     <string name="most_played_albums">Najczęściej słuchane albumy</string>
     <string name="search">Szukaj</string>
-    <string name="search_yt_music">Szukaj w YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Szukaj w bibliotece…</string>
     <string name="filter_library">Biblioteka</string>
     <string name="filter_liked">Polubione</string>
@@ -256,7 +256,7 @@
     <string name="remove_from_playlist">Usuń z playlisty</string>
     <string name="remove_all_from_library">Usuń wszystko z biblioteki</string>
     <string name="your_youtube_playlists">Twoje playlisty YouTube</string>
-    <string name="enable_discord_rpc">Włącz Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="remove_from_queue">Usuń z kolejki</string>
     <string name="login_failed">Błąd logowania</string>
     <string name="similar_to">Podobne do</string>

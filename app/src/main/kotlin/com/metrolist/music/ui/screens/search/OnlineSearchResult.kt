@@ -482,6 +482,8 @@ fun OnlineSearchResult(
                             query = decodedQuery,
                             result = localSearchResult,
                             navController = navController,
+                            playerConnection = playerConnection,
+                            menuState = menuState,
                         )
                     }
 

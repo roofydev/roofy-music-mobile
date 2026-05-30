@@ -109,6 +109,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
+import com.metrolist.music.productux.WatchVideo
 import com.metrolist.music.ui.theme.RetroButton
 import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroIconButton
@@ -473,6 +474,30 @@ fun PlayerMenu(
                                         } else {
                                             navController.navigate("album/${mediaMetadata.album.id}")
                                         }
+                                        playerBottomSheetState.collapseSoft()
+                                        onDismiss()
+                                    },
+                                ),
+                            )
+                        }
+                        val canOpenVideo =
+                            mediaMetadata.id.isNotBlank() &&
+                                !mediaMetadata.id.startsWith("subsonic:") &&
+                                !mediaMetadata.id.contains("/")
+                        if (canOpenVideo) {
+                            add(
+                                Material3MenuItemData(
+                                    title = { Text(text = stringResource(R.string.open_video)) },
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.play),
+                                            contentDescription = stringResource(R.string.open_video),
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    },
+                                    onClick = {
+                                        val url = WatchVideo.videoUrlForTrack(trackId = mediaMetadata.id)
+                                        WatchVideo.open(context, navController, url)
                                         playerBottomSheetState.collapseSoft()
                                         onDismiss()
                                     },

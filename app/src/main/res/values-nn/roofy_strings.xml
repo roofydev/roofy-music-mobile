@@ -339,13 +339,11 @@
     <string name="product_ux_refetch_metadata">Refresh song details from the online catalog</string>
     <string name="product_ux_enable_stream_buffer">Keep songs ready while streaming</string>
     <string name="product_ux_enable_stream_buffer_desc">Saves recent streams so playback resumes faster. This is not the same as saving offline.</string>
-    <string name="product_ux_video_mobile_roadmap">Video opens in your browser for now. In-app video is planned.</string>
+    <string name="product_ux_video_mobile_roadmap">Video opens inside Roofy for now. A dedicated player view is planned.</string>
     <string name="youtube_music_lyrics_note">Note: Online catalog lyrics may appear when no other source is available. They are often out of sync with the song.</string>
     <string name="enable_song_cache">Buffer streams while playing</string>
     <string name="enable_song_cache_desc">Keeps a temporary copy for smoother replay. Saved offline music is separate.</string>
     <string name="android_auto_youtube_playlists_desc">Show online catalog playlists in Android Auto</string>
-    <string name="song_cache">Streaming buffer</string>
-    <string name="image_cache">Artwork buffer</string>
     <string name="product_ux_a11y_replay">Play again</string>
     <string name="product_ux_a11y_fullscreen">Fullscreen</string>
     <string name="product_ux_queue_empty">Nothing in the queue. Play a song or add tracks from your library.</string>
@@ -357,4 +355,9 @@
     <string name="product_ux_a11y_unlock_queue">Unlock queue editing</string>
     <string name="product_ux_a11y_reorder">Reorder</string>
     <string name="product_ux_a11y_close">Close</string>
+    <string name="product_ux_wrapped_no_data">Keep listening — your recap will show up here.</string>
+    <string name="open_video">Open video</string>
+    <string name="watch_video">Open video</string>
+    <string name="video_watch_title">Video</string>
+    <string name="video_watch_back">Back to player</string>
 </resources>

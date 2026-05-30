@@ -27,7 +27,7 @@
     <string name="most_played_artists">ศิลปินที่ฟังมากที่สุด</string>
     <string name="most_played_albums">อัลบั้มที่ฟังมากที่สุด</string>
     <string name="search">ค้นหา</string>
-    <string name="search_yt_music">ค้นหาใน YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">ค้นหาในคลังเพลง…</string>
     <string name="filter_library">คลังเพลง</string>
     <string name="filter_liked">ถูกใจ</string>
@@ -263,7 +263,7 @@
     <string name="dismiss">ปิด</string>
     <string name="options">ตัวเลือก</string>
     <string name="preview">ตัวอย่าง</string>
-    <string name="enable_discord_rpc">เปิดใช้งาน Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">เกี่ยวกับ</string>
     <string name="app_version">เวอร์ชันแอป</string>
     <string name="new_version_available">มีเวอร์ชันใหม่พร้อมใช้งาน</string>

@@ -30,7 +30,7 @@
     <string name="most_played_artists">Найпопулярніші виконавці</string>
     <string name="most_played_albums">Найпопулярніші альбоми</string>
     <string name="search">Пошук</string>
-    <string name="search_yt_music">Пошук в YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Пошук в бібліотеці…</string>
     <string name="filter_library">Бібліотека</string>
     <string name="filter_liked">Вподобані</string>
@@ -287,7 +287,7 @@
     <string name="preview">Попередній перегляд</string>
     <string name="login_failed">Помилка входу</string>
     <string name="action_logout">Вийти</string>
-    <string name="enable_discord_rpc">Увімкнути Rich Presenсe</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">Про програму</string>
     <string name="app_version">Версія застосунку</string>
     <string name="new_version_available">Доступна нова версія</string>

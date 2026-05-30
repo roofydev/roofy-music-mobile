@@ -88,6 +88,7 @@ fun ColumnScope.ListenOnSheet(
 
     var desktopSnapshot by remember { mutableStateOf<HandoffSnapshot?>(null) }
     var desktopReachable by remember { mutableStateOf(false) }
+    var desktopProbeError by remember { mutableStateOf<String?>(null) }
     var isProbing by remember(isPaired) { mutableStateOf(isPaired) }
     var isTransferring by remember { mutableStateOf(false) }
 
@@ -102,25 +103,47 @@ fun ColumnScope.ListenOnSheet(
             isProbing = false
             desktopSnapshot = null
             desktopReachable = false
+            desktopProbeError = null
             return@LaunchedEffect
         }
         isProbing = true
-        val result =
+        desktopProbeError = null
+
+        val healthResult =
             withContext(Dispatchers.IO) {
                 runCatching {
-                    val liveEndpoint = DesktopConnect.resolveLiveEndpoint(endpointUrl, token).getOrThrow()
-                    DesktopHandoffClient.fetchState(liveEndpoint, token).getOrThrow()
+                    DesktopConnect.resolveLiveEndpoint(endpointUrl, token).getOrThrow()
                 }
             }
-        result
-            .onSuccess { snapshot ->
-                desktopSnapshot = snapshot
+
+        healthResult
+            .onSuccess { liveEndpoint ->
+                val normalizedStored = endpointUrl.trim().trimEnd('/')
+                if (liveEndpoint != normalizedStored) {
+                    context.dataStore.edit { settings ->
+                        settings[DesktopImportEndpointUrlKey] = liveEndpoint
+                    }
+                }
                 desktopReachable = true
+                desktopProbeError = null
+
+                val stateResult =
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            DesktopHandoffClient.fetchState(liveEndpoint, token).getOrThrow()
+                        }
+                    }
+                stateResult
+                    .onSuccess { snapshot -> desktopSnapshot = snapshot }
+                    .onFailure { desktopSnapshot = null }
             }
-            .onFailure {
+            .onFailure { error ->
                 desktopSnapshot = null
                 desktopReachable = false
+                desktopProbeError =
+                    (error as? IllegalStateException)?.message?.takeIf { it.isNotBlank() }
             }
+
         isProbing = false
     }
 
@@ -270,10 +293,12 @@ fun ColumnScope.ListenOnSheet(
         title = stringResource(R.string.listen_on_this_computer),
         subtitle =
             when {
-                !desktopReachable -> stringResource(R.string.listen_on_computer_unreachable)
+                !desktopReachable ->
+                    desktopProbeError ?: stringResource(R.string.listen_on_computer_unreachable)
                 activeOnPhone && !desktopHasMedia -> stringResource(R.string.listen_on_computer_idle)
                 !activeOnPhone && desktopHasMedia -> stringResource(R.string.listen_on_playing_here)
                 desktopHasMedia -> stringResource(R.string.listen_on_ready)
+                phoneHasMedia -> stringResource(R.string.listen_on_handoff_to_computer)
                 else -> stringResource(R.string.listen_on_tap_to_play_here)
             },
         iconRes = R.drawable.sync,
@@ -289,7 +314,12 @@ fun ColumnScope.ListenOnSheet(
                 return@ListenOnDeviceRow
             }
             if (!desktopReachable) {
-                Toast.makeText(context, R.string.listen_on_computer_unreachable, Toast.LENGTH_LONG).show()
+                Toast
+                    .makeText(
+                        context,
+                        desktopProbeError ?: context.getString(R.string.listen_on_computer_unreachable),
+                        Toast.LENGTH_LONG,
+                    ).show()
                 return@ListenOnDeviceRow
             }
             val connection = playerConnection ?: return@ListenOnDeviceRow

@@ -24,7 +24,7 @@
     <string name="most_played_artists">Mest spilte artister</string>
     <string name="most_played_albums">Mest spilte album</string>
     <string name="search">Søk</string>
-    <string name="search_yt_music">Søk gjennom YouTube Music …</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Søk gjennom biblioteket …</string>
     <string name="filter_library">Bibliotek</string>
     <string name="filter_liked">Likte</string>
@@ -168,7 +168,7 @@
     <string name="dismiss">Avvis</string>
     <string name="options">Innstillinger</string>
     <string name="login_failed">Innlogging mislyktes</string>
-    <string name="enable_discord_rpc">Slå på rik tilstedeværelse</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="app_version">Programversjon</string>
     <string name="new_version_available">Ny versjon tilgjengelig</string>
     <string name="translation_models">Oversettingsmodeller</string>

@@ -149,8 +149,6 @@
     <string name="show_cached_playlist">Show streaming buffer playlist (advanced)</string>
     <string name="enable_song_cache">Buffer streams while playing</string>
     <string name="enable_song_cache_desc">Keeps a temporary copy for smoother replay. Saved offline music is separate.</string>
-    <string name="song_cache">Streaming buffer</string>
-    <string name="image_cache">Artwork buffer</string>
     <string name="show_uploaded_playlist">Show Uploaded playlist</string>
     <string name="show_most_stats_playlists">Show Weekly and Monthly Most playlists</string>
     <string name="show_most_stats_playlists_desc">Create and show stats-based Most playlists in Stats and Library</string>
@@ -475,7 +473,8 @@
     <string name="wrapped_top_5_albums_title">Your top 5 albums</string>
     <string name="wrapped_album_listening_time">You\'ve listened to this album for %d minutes!</string>
     <string name="wrapped_album_listening_time_minutes">%d minutes</string>
-    <string name="wrapped_no_data">No data available</string>
+    <string name="wrapped_no_data">Keep listening — your recap will show up here.</string>
+    <string name="product_ux_wrapped_no_data">Keep listening — your recap will show up here.</string>
     <string name="wrapped_top_5_artists_title">Your top artists of the year</string>
     <string name="wrapped_artist_listening_time">%d minutes</string>
     <string name="wrapped_top_5_songs_title">Your top songs of the year</string>
@@ -687,7 +686,7 @@
     <string name="phone_link_camera_denied">Camera permission is needed to scan the code.</string>
     <string name="phone_link_pairing_invalid">This link is not valid. Open Link your phone on your computer and scan again.</string>
     <string name="phone_link_paired">Linked to your computer</string>
-    <string name="phone_link_view_connected">What you can do now</string>
+    <string name="phone_link_connected_hint">Linked. Open Listen on from Now Playing to switch playback between this phone and your computer.</string>
     <string name="phone_link_success_title">Linked to your computer</string>
     <string name="phone_link_success_body">You can listen to your saved music and send songs to your computer.</string>
     <string name="phone_link_choose_mode">What do you want to do on your phone?</string>
@@ -742,7 +741,7 @@
     <string name="personal_library_sync_all_desc">Run favorites, playlists, and play history sync in one step.</string>
     <string name="personal_library_sync_favorites">Sync favorites</string>
     <string name="personal_library_syncing">Syncing...</string>
-    <string name="personal_library_sync_summary">Remote: %1$d, imported: %2$d, updated: %3$d, pushed: %4$d</string>
+    <string name="personal_library_sync_summary">Pulled %1$d · Saved %2$d · Updated %3$d · Sent %4$d</string>
     <string name="personal_library_sync_playlists">Sync playlists</string>
     <string name="personal_library_sync_playlists_desc">Import playlists from your personal library and send pending playlists back to your computer.</string>
     <string name="personal_library_sync_playlists_summary">Remote: %1$d, imported: %2$d, updated: %3$d, pushed: %4$d</string>
@@ -767,7 +766,8 @@
     <string name="listen_on_nothing_on_computer">Nothing is playing on your computer right now.</string>
     <string name="listen_on_nothing_on_phone">Start playing something on this phone first.</string>
     <string name="listen_on_computer_unreachable">Can\'t reach your computer. Open Roofy on your computer and try again.</string>
-    <string name="listen_on_computer_idle">Available</string>
+    <string name="listen_on_computer_idle">Nothing playing on your computer yet</string>
+    <string name="listen_on_handoff_to_computer">Send this song to your computer</string>
     <string name="listen_on_manage_devices">Device settings</string>
     <string name="devices_speakers_and_tvs">Speakers &amp; TVs</string>
     <string name="devices_cast_connecting">Connecting…</string>
@@ -778,7 +778,7 @@
     <string name="devices_cast_sheet_title_active">Casting</string>
     <string name="devices_cast_sheet_title_pick">Cast to</string>
     <string name="devices_web_control_title">Browser remote</string>
-    <string name="devices_web_control_subtitle">Control this computer from another browser on your Wi‑Fi</string>
+    <string name="devices_web_control_subtitle">Opens a simple control page in your browser (same Wi‑Fi). In-app remote control is not available yet.</string>
     <string name="roofy_connect_continue_on_phone">Continue on phone</string>
     <string name="roofy_connect_continue_on_phone_desc">Pick up desktop playback on this device</string>
     <string name="roofy_connect_fetching">Fetching desktop playback...</string>
@@ -1119,7 +1119,11 @@
     <string name="choose_something_below">Choose something below</string>
 
     <!-- Product UX (mirrors desktop productUx namespace) -->
-    <string name="watch_video">Watch video</string>
+    <string name="open_video">Open video</string>
+    <string name="watch_video">Open video</string>
+    <string name="video_watch_title">Video</string>
+    <string name="video_watch_back">Back to player</string>
+    <string name="video_available_badge">Video available</string>
     <string name="product_ux_error_playback_generic">This song cannot be played right now.</string>
     <string name="product_ux_error_playback_source_blocked">This version cannot be played from this source right now.</string>
     <string name="product_ux_error_playback_stream_expired">Playback expired. Try playing again.</string>
@@ -1145,7 +1149,7 @@
     <string name="product_ux_refetch_metadata">Refresh song details from the online catalog</string>
     <string name="product_ux_enable_stream_buffer">Keep songs ready while streaming</string>
     <string name="product_ux_enable_stream_buffer_desc">Saves recent streams so playback resumes faster. This is not the same as saving offline.</string>
-    <string name="product_ux_video_mobile_roadmap">Video opens in your browser for now. In-app video is planned.</string>
+    <string name="product_ux_video_mobile_roadmap">Video opens inside Roofy for now. A dedicated player view is planned.</string>
     <string name="product_ux_a11y_replay">Play again</string>
     <string name="product_ux_a11y_fullscreen">Fullscreen</string>
     <string name="product_ux_queue_empty">Nothing in the queue. Play a song or add tracks from your library.</string>

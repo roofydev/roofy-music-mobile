@@ -80,9 +80,7 @@ fun LinkComputerScreen(
                     )
                 if (ok) {
                     withContext(Dispatchers.Main) {
-                        navController.navigate("link_computer/success") {
-                            launchSingleTop = true
-                        }
+                        Toast.makeText(context, R.string.phone_link_paired, Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     withContext(Dispatchers.Main) {
@@ -154,16 +152,11 @@ fun LinkComputerScreen(
                 }
 
                 if (linked) {
-                    RetroButton(
-                        onClick = {
-                            navController.navigate("link_computer/success") {
-                                launchSingleTop = true
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(stringResource(R.string.phone_link_view_connected))
-                    }
+                    Text(
+                        text = stringResource(R.string.phone_link_connected_hint),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }

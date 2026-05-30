@@ -24,7 +24,7 @@
     <string name="most_played_songs">Cançons més reproduïdes</string>
     <string name="most_played_artists">Artistes més reproduïts</string>
     <string name="most_played_albums">Àlbums més reproduïts</string>
-    <string name="search_yt_music">Cerca a YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Cerca a la col·lecció…</string>
     <string name="filter_liked">M’ha agradat</string>
     <string name="filter_downloaded">Descarregat</string>
@@ -284,7 +284,7 @@
     <string name="use_login_for_browse_desc">Això pot influenciar el contingut que veus i per exemple, mostra àlbums exclusius prèmium si la sessió està iniciada en un compte prèmium</string>
     <string name="disable_screenshot_desc">Quan aquesta opció és activada, les captures de pantalla i la visualització a \"recents\" són desactivades.</string>
     <string name="dismiss">Ignora</string>
-    <string name="enable_discord_rpc">Activa \"Rich Presence\"</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="error_no_stream">Cap transmissió disponible</string>
     <string name="sided">Amb vores</string>
 </resources>

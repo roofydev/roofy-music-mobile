@@ -25,7 +25,7 @@
     <string name="most_played_artists">Nejčastěji přehrávaní umělci</string>
     <string name="most_played_albums">Nejčastěji přehrávaná alba</string>
     <string name="search">Vyhledávání</string>
-    <string name="search_yt_music">Hledat v YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Hledat v knihovně…</string>
     <string name="filter_library">Knihovna</string>
     <string name="filter_liked">Oblíbené</string>
@@ -282,7 +282,7 @@
     <string name="default_">Výchozí</string>
     <string name="theme">Motiv</string>
     <string name="player_text_alignment">Zarovnání textu přehrávače</string>
-    <string name="enable_discord_rpc">Povolit stav na Discordu</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="action_logout">Odhlásit se</string>
     <string name="use_login_for_browse">Použít účet pro procházení obsahu</string>
     <string name="use_login_for_browse_desc">Může ovlivnit obsah, který se vám zobrazí – při přihlášení například mohou být zobrazena například alba, která jsou dostupná pouze s Premium účtem</string>

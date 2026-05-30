@@ -18,8 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.playback.PlayerConnection
 import com.metrolist.music.constants.CONTENT_TYPE_LIST
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
@@ -27,7 +27,7 @@ import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.playback.queues.ListQueue
-import com.metrolist.music.ui.component.LocalMenuState
+import com.metrolist.music.ui.component.MenuState
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.theme.RetroListItem
 import com.metrolist.music.ui.theme.RetroTokens
@@ -39,9 +39,9 @@ fun LazyListScope.localSearchResultsSection(
     query: String,
     result: LocalSearchResult,
     navController: NavController,
+    playerConnection: PlayerConnection,
+    menuState: MenuState,
 ) {
-    val playerConnection = LocalPlayerConnection.current ?: return
-    val menuState = LocalMenuState.current
 
     if (query.isBlank() || result.map.values.all { it.isEmpty() }) {
         return

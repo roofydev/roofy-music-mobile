@@ -36,6 +36,9 @@ object UserFacingErrors {
     return when {
       raw.contains("403") || raw.contains("blocked") ->
           context.getString(R.string.product_ux_error_playback_source_blocked)
+      raw.contains("page needs to be reloaded") ||
+          raw.contains("reloaded") && raw.contains("page") ->
+          context.getString(R.string.product_ux_error_playback_stream_expired)
       raw.contains("expired") || raw.contains("token") ->
           context.getString(R.string.product_ux_error_playback_stream_expired)
       raw.contains("sign in") || raw.contains("login") ->

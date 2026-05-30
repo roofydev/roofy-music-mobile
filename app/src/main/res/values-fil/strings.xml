@@ -24,7 +24,7 @@
     <string name="most_played_artists">Pinakamadalas na pinatugtog na mga artista</string>
     <string name="most_played_albums">Pinakamadalas na pinatugtog na mga album</string>
     <string name="search">Maghanap</string>
-    <string name="search_yt_music">Maghanap sa YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Maghanap sa aklatan…</string>
     <string name="filter_library">Aklatan</string>
     <string name="filter_liked">Na-like</string>
@@ -268,7 +268,7 @@
     <string name="dismiss">Balewalain</string>
     <string name="options">Mga Opsyon</string>
     <string name="preview">Pasilip</string>
-    <string name="enable_discord_rpc">Paganahin ang Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">Tungkol sa</string>
     <string name="app_version">Bersyon ng aplikasyon</string>
     <string name="new_version_available">Magagamit ang bagong bersyon</string>

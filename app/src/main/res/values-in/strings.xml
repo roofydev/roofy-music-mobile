@@ -23,7 +23,7 @@
     <string name="most_played_artists">Artis paling sering diputar</string>
     <string name="most_played_albums">Album paling sering diputar</string>
     <string name="search">Cari</string>
-    <string name="search_yt_music">Cari di YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Cari di pustaka…</string>
     <string name="filter_library">Pustaka</string>
     <string name="filter_liked">Disukai</string>
@@ -265,7 +265,7 @@
     <string name="discord_integration">Integrasi Discord</string>
     <string name="dismiss">Tutup</string>
     <string name="preview">Pratinjau</string>
-    <string name="enable_discord_rpc">Aktifkan Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="use_login_for_browse">Login untuk menjelajahi konten</string>
     <string name="use_login_for_browse_desc">Ini dapat memengaruhi konten yang Anda lihat dan misalnya menampilkan album khusus premium jika Anda login dengan akun Premium</string>
     <string name="action_login">Masuk</string>

@@ -24,7 +24,7 @@
     <string name="most_played_artists">Cei mai redați artiști</string>
     <string name="most_played_albums">Cele mai redate albume</string>
     <string name="search">Caută</string>
-    <string name="search_yt_music">Caută pe YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Caută în bibliotecă…</string>
     <string name="filter_library">Bibliotecă</string>
     <string name="filter_liked">Apreciate</string>
@@ -277,7 +277,7 @@
     <string name="dismiss">Închide</string>
     <string name="options">Opțiuni</string>
     <string name="preview">Previzualizează</string>
-    <string name="enable_discord_rpc">Activează Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">Despre</string>
     <string name="app_version">Versiunea aplicației</string>
     <string name="new_version_available">Versiune nouă disponibilă</string>

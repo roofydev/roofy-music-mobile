@@ -80,14 +80,17 @@ object PhoneLinkSetup {
             } ?: return false
 
         applyDevicePair(dataStore, params)
-        notifyDesktopPhonePaired(params)
+        notifyDesktopPhonePaired(dataStore, params)
         withContext(Dispatchers.Main) {
             Toast.makeText(context, R.string.phone_link_paired, Toast.LENGTH_SHORT).show()
         }
         return true
     }
 
-    private suspend fun notifyDesktopPhonePaired(params: DevicePairingParams) {
+    private suspend fun notifyDesktopPhonePaired(
+        dataStore: DataStore<Preferences>,
+        params: DevicePairingParams,
+    ) {
         val endpoint = params.endpointUrl.trim().trimEnd('/')
         val token = params.token.trim()
         if (endpoint.isBlank() || token.isBlank()) return
@@ -95,6 +98,12 @@ object PhoneLinkSetup {
         withContext(Dispatchers.IO) {
             runCatching {
                 DesktopConnect.resolveLiveEndpoint(endpoint, token).getOrThrow()
+            }.onSuccess { liveEndpoint ->
+                if (liveEndpoint != endpoint) {
+                    dataStore.edit { settings ->
+                        settings[DesktopImportEndpointUrlKey] = liveEndpoint
+                    }
+                }
             }
         }
     }

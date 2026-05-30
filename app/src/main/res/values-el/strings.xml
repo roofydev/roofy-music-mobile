@@ -27,7 +27,7 @@
     <string name="most_played_artists">Οι πιο πολυπαιγμένοι καλλιτέχνες</string>
     <string name="most_played_albums">Τα πιο πολυπαιγμένα άλμπουμ</string>
     <string name="search">Αναζήτηση</string>
-    <string name="search_yt_music">Αναζήτηση Μουσικής YouTube…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Αναζήτηση βιβλιοθήκης…</string>
     <string name="filter_library">Βιβλιοθήκη</string>
     <string name="filter_liked">Αγαπημένα</string>
@@ -259,7 +259,7 @@
     <string name="preview">Προεπισκόπηση</string>
     <string name="login_failed">Η σύνδεση απέτυχε</string>
     <string name="action_logout">Αποσύνδεση</string>
-    <string name="enable_discord_rpc">Ενεργοποίηση Πλούσιας Παρουσίας</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">Σχετικά</string>
     <string name="app_version">Έκδοση εφαρμογής</string>
     <string name="new_version_available">Νέα διαθέσιμη έκδοση</string>

@@ -211,6 +211,7 @@ fun ShowMediaInfo(videoId: String) {
                     val cardsTechnical = mutableListOf<Material3SettingsItem>()
                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
+                    @Composable
                     fun addItems(
                         pairs: List<Pair<String, String?>>,
                         icons: List<Int>,

@@ -22,6 +22,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object HandoffPlayback {
+    private val YOUTUBE_VIDEO_ID_REGEX = Regex("^[A-Za-z0-9_-]{11}$")
+
     fun buildSnapshot(playerConnection: PlayerConnection): HandoffSnapshot {
         val player = playerConnection.player
         val currentMetadata = player.currentMediaItem?.metadata
@@ -175,10 +177,11 @@ object HandoffPlayback {
             )
         }
 
-        if (!id.startsWith("LP") && id.length in 8..32) {
+        val youtubeVideoId = resolveYoutubeVideoId()
+        if (youtubeVideoId != null) {
             return HandoffTrack(
                 source = "youtube",
-                id = id,
+                id = youtubeVideoId,
                 title = title,
                 artist = artists.joinToString { it.name }.ifBlank { "Unknown artist" },
                 album = album?.title,
@@ -188,5 +191,15 @@ object HandoffPlayback {
         }
 
         return null
+    }
+
+    /** Playable watch id — often in [setVideoId] when [id] is a browse/navigation token. */
+    internal fun MediaMetadata.resolveYoutubeVideoId(): String? {
+        val candidates =
+            listOfNotNull(
+                setVideoId?.trim()?.takeIf { it.isNotEmpty() },
+                id.removePrefix("ytm:").trim().takeIf { it.isNotEmpty() },
+            )
+        return candidates.firstOrNull { YOUTUBE_VIDEO_ID_REGEX.matches(it) }
     }
 }

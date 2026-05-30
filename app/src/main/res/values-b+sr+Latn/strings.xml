@@ -29,7 +29,7 @@
     <string name="most_played_artists">Najslušaniji izvođači</string>
     <string name="most_played_albums">Najslušaniji albumi</string>
     <string name="search">Pretraži</string>
-    <string name="search_yt_music">Pretraži YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="filter_downloaded">Preuzeto</string>
     <string name="filter_all">Sve</string>
     <string name="filter_songs">Pesme</string>
@@ -222,7 +222,7 @@
     <string name="discord_integration">Discord integracija</string>
     <string name="dismiss">Odbaci</string>
     <string name="options">Opcije</string>
-    <string name="enable_discord_rpc">Omogući Bogatu Prisutnost</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">O Roofy Music-u</string>
     <string name="app_version">Verzija aplikacije</string>
     <string name="new_version_available">Dostupna je nova verzija</string>

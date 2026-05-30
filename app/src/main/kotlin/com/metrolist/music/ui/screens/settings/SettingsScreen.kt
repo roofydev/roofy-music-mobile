@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
 import com.metrolist.music.BuildConfig
+import com.metrolist.music.LocalChangelogState
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.ui.component.IconButton
@@ -50,6 +51,7 @@ fun SettingsScreen(
     latestVersionName: String,
 ) {
     val context = LocalContext.current
+    val showChangelog = LocalChangelogState.current
     val isAndroid12OrLater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val hasAndroidAuto = remember {
         try {
@@ -247,7 +249,7 @@ fun SettingsScreen(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.newspaper),
                         title = { Text(stringResource(R.string.changelog)) },
-                        onClick = { com.metrolist.music.LocalChangelogState.current.value = true }
+                        onClick = { showChangelog.value = true }
                     )
                 )
                 add(

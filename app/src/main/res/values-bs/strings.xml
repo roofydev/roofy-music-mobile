@@ -85,7 +85,7 @@
     <string name="undo">Vrati</string>
     <string name="artists">Umjetnici</string>
     <string name="playlists">Spisci za reprodukciju</string>
-    <string name="search_yt_music">Pretraži YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="from_your_library">Iz vaše biblioteke</string>
     <string name="stats">Statistike</string>
     <string name="mood_and_genres">Raspoloženje i Žanrovi</string>
@@ -277,7 +277,7 @@
     <string name="login_failed">Neuspješno upisivanje</string>
     <string name="options">Opcije</string>
     <string name="preview">Pregled</string>
-    <string name="enable_discord_rpc">Omogući Bogatu Prisutnost</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="app_version">Verzija aplikacije</string>
     <string name="action_logout">Izpiši se</string>
     <string name="about">O Roofy Music-u</string>

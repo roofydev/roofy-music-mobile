@@ -42,7 +42,7 @@
     <string name="search_library">Търсене в библиотека…</string>
     <string name="filter_artists">Изпълнители</string>
     <string name="most_played_artists">Най-пускани изпълнители</string>
-    <string name="search_yt_music">Търсене в YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="filter_liked">Харесвани</string>
     <string name="filter_downloaded">Изтеглени</string>
     <string name="filter_all">Всички</string>
@@ -273,7 +273,7 @@
     <string name="options">Опции</string>
     <string name="preview">Преглед</string>
     <string name="action_logout">Изход</string>
-    <string name="enable_discord_rpc">Активирай Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="new_version_available">Налична е нова версия</string>
     <string name="use_login_for_browse">Използвай вход за разглеждане на съдържание</string>
     <string name="use_login_for_browse_desc">Това може да повлияе какво съдържание виждате и например показва само премиум албуми, ако сте влезли с Премиум профил</string>

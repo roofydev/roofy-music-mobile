@@ -44,7 +44,9 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.DesktopImportEndpointUrlKey
 import com.metrolist.music.constants.DesktopImportTokenKey
-import com.metrolist.music.desktopimport.DesktopImportClient
+import com.metrolist.music.desktopimport.DesktopConnect
+import com.metrolist.music.utils.dataStore
+import androidx.datastore.preferences.core.edit
 import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.theme.RetroButton
@@ -59,6 +61,7 @@ fun DesktopImportSettings(
     navController: NavController,
 ) {
     val context = LocalContext.current
+    val dataStore = context.dataStore
     val coroutineScope = rememberCoroutineScope()
     var endpointUrl by rememberPreference(DesktopImportEndpointUrlKey, "")
     var token by rememberPreference(DesktopImportTokenKey, "")
@@ -156,10 +159,16 @@ fun DesktopImportSettings(
                         onClick = {
                             testing = true
                             coroutineScope.launch {
-                                val result = DesktopImportClient.health(endpointUrl, token)
+                                val result = DesktopConnect.resolveLiveEndpoint(endpointUrl, token)
                                 testing = false
                                 result
-                                    .onSuccess {
+                                    .onSuccess { liveEndpoint ->
+                                        if (liveEndpoint != endpointUrl.trim().trimEnd('/')) {
+                                            endpointUrl = liveEndpoint
+                                            dataStore.edit { settings ->
+                                                settings[DesktopImportEndpointUrlKey] = liveEndpoint
+                                            }
+                                        }
                                         Toast.makeText(context, connectedMessage, Toast.LENGTH_SHORT).show()
                                     }
                                     .onFailure { error ->

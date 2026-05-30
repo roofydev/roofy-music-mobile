@@ -29,7 +29,7 @@
     <string name="most_played_artists">האמנים הכי מושמעים</string>
     <string name="most_played_albums">אלבומים הכי מושמעים</string>
     <string name="search">חיפוש</string>
-    <string name="search_yt_music">חפש ביוטיוב מוזיקה…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">חפש בספרייה…</string>
     <string name="filter_library">ספרייה</string>
     <string name="filter_liked">אהבתי</string>
@@ -281,7 +281,7 @@
     <string name="dismiss">התעלמות</string>
     <string name="options">אפשרויות</string>
     <string name="preview">תצוגה מקדימה</string>
-    <string name="enable_discord_rpc">הפעלת נוכחות עשירה</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">אודות</string>
     <string name="app_version">גירסת אפליקציה</string>
     <string name="new_version_available">גירסה חדשה זמינה</string>

@@ -45,6 +45,7 @@ import com.metrolist.music.ui.screens.recognition.RecognitionHistoryScreen
 import com.metrolist.music.ui.screens.recognition.RecognitionScreen
 import com.metrolist.music.ui.screens.search.OnlineSearchResult
 import com.metrolist.music.ui.screens.search.SearchScreen
+import com.metrolist.music.ui.screens.video.VideoWatchScreen
 import com.metrolist.music.ui.screens.settings.AboutScreen
 import com.metrolist.music.ui.screens.settings.AiSettings
 import com.metrolist.music.ui.screens.settings.AndroidAutoSettings
@@ -474,6 +475,21 @@ fun NavGraphBuilder.navigationBuilder(
     composable("recognition_history") {
         RecognitionHistoryScreen(navController)
     }
+
+    composable(
+        route = "video_watch?url={url}",
+        arguments =
+            listOf(
+                navArgument("url") {
+                    type = NavType.StringType
+                },
+            ),
+    ) {
+        val encodedUrl = it.arguments?.getString("url").orEmpty()
+        val videoUrl = android.net.Uri.decode(encodedUrl)
+        VideoWatchScreen(navController, videoUrl)
+    }
+
     composable("settings/android_auto") {
         AndroidAutoSettings(navController, scrollBehavior)
     }
