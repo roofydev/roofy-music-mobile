@@ -57,10 +57,7 @@ sealed class Screens(
     )
 
     companion object {
-        /** Default bottom nav: Home, Search, Library, Now Playing (per product UX plan). */
+        /** Fixed bottom nav: Home, Search, Library, Now Playing (Apple-level product model). */
         val MainScreens = listOf(Home, Search, Library, NowPlaying)
-
-        /** Full set when Listen Together is shown in the bottom bar instead of the top bar. */
-        val MainScreensWithListenTogether = listOf(Home, Search, ListenTogether, Library)
     }
 }

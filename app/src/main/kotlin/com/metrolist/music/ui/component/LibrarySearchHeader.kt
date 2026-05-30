@@ -101,7 +101,7 @@ fun LibrarySearchEmptyPlaceholder(
 ) {
     EmptyPlaceholder(
         icon = icon,
-        text = text ?: stringResource(R.string.no_results_found),
+        text = text ?: stringResource(R.string.product_ux_search_empty),
         modifier = modifier,
     )
 }

@@ -7,6 +7,7 @@
 package com.metrolist.music.ui.screens.settings.integrations
 
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -44,6 +45,7 @@ import com.metrolist.music.R
 import com.metrolist.music.constants.DesktopImportEndpointUrlKey
 import com.metrolist.music.constants.DesktopImportTokenKey
 import com.metrolist.music.desktopimport.DesktopImportClient
+import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.theme.RetroButton
 import com.metrolist.music.ui.theme.RetroSurface
@@ -61,9 +63,10 @@ fun DesktopImportSettings(
     var endpointUrl by rememberPreference(DesktopImportEndpointUrlKey, "")
     var token by rememberPreference(DesktopImportTokenKey, "")
     var testing by rememberSaveable { mutableStateOf(false) }
+    var manualSetupOpen by rememberSaveable { mutableStateOf(endpointUrl.isNotBlank()) }
 
     val connectedMessage = stringResource(R.string.desktop_import_connection_ok)
-    val failedPrefix = stringResource(R.string.desktop_import_connection_failed)
+    val importErrorMessage = UserFacingErrors.desktopImportMessage(context, null)
 
     Column(
         modifier =
@@ -94,52 +97,91 @@ fun DesktopImportSettings(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                OutlinedTextField(
-                    value = endpointUrl,
-                    onValueChange = { endpointUrl = it.trim() },
-                    label = { Text(stringResource(R.string.desktop_import_endpoint_url)) },
-                    placeholder = { Text("https://example.trycloudflare.com") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                )
-
-                OutlinedTextField(
-                    value = token,
-                    onValueChange = { token = it.trim() },
-                    label = { Text(stringResource(R.string.desktop_import_token)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                )
-
-                RetroButton(
-                    enabled = !testing && endpointUrl.isNotBlank() && token.isNotBlank(),
-                    onClick = {
-                        testing = true
-                        coroutineScope.launch {
-                            val result = DesktopImportClient.health(endpointUrl, token)
-                            testing = false
-                            result
-                                .onSuccess {
-                                    Toast.makeText(context, connectedMessage, Toast.LENGTH_SHORT).show()
-                                }
-                                .onFailure {
-                                    Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
-                                        .show()
-                                }
-                        }
-                    },
-                ) {
+                if (endpointUrl.isBlank()) {
                     Text(
-                        if (testing) {
-                            stringResource(R.string.desktop_import_testing)
-                        } else {
-                            stringResource(R.string.desktop_import_test_connection)
-                        },
+                        text = stringResource(R.string.desktop_import_qr_first_title),
+                        style = MaterialTheme.typography.titleMedium,
                     )
+                    Text(
+                        text = stringResource(R.string.desktop_import_qr_first_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    RetroButton(
+                        onClick = { navController.navigate("link_computer") },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.phone_link_scan_qr))
+                    }
+                } else {
+                    Text(
+                        text = connectedMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+
+                if (!manualSetupOpen && endpointUrl.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.desktop_import_manual_setup),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { manualSetupOpen = true },
+                    )
+                }
+
+                if (manualSetupOpen || endpointUrl.isNotBlank()) {
+                    OutlinedTextField(
+                        value = endpointUrl,
+                        onValueChange = { endpointUrl = it.trim() },
+                        label = { Text(stringResource(R.string.desktop_import_endpoint_url)) },
+                        placeholder = { Text("https://example.trycloudflare.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    )
+
+                    OutlinedTextField(
+                        value = token,
+                        onValueChange = { token = it.trim() },
+                        label = { Text(stringResource(R.string.desktop_import_token)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    )
+
+                    RetroButton(
+                        enabled = !testing && endpointUrl.isNotBlank() && token.isNotBlank(),
+                        onClick = {
+                            testing = true
+                            coroutineScope.launch {
+                                val result = DesktopImportClient.health(endpointUrl, token)
+                                testing = false
+                                result
+                                    .onSuccess {
+                                        Toast.makeText(context, connectedMessage, Toast.LENGTH_SHORT).show()
+                                    }
+                                    .onFailure { error ->
+                                        Toast
+                                            .makeText(
+                                                context,
+                                                UserFacingErrors.desktopImportMessage(context, error),
+                                                Toast.LENGTH_LONG,
+                                            )
+                                            .show()
+                                    }
+                            }
+                        },
+                    ) {
+                        Text(
+                            if (testing) {
+                                stringResource(R.string.desktop_import_testing)
+                            } else {
+                                stringResource(R.string.desktop_import_test_connection)
+                            },
+                        )
+                    }
                 }
             }
         }

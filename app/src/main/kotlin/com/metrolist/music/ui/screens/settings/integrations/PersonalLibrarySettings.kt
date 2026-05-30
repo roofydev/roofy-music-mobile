@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -58,6 +59,7 @@ import com.metrolist.music.subsonic.SubsonicSong
 import com.metrolist.music.subsonic.toMediaItem
 import com.metrolist.music.subsonic.toRoofyMetadata
 import com.metrolist.music.playback.queues.ListQueue
+import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.MediaMetadataListItem
 import com.metrolist.music.ui.theme.RetroButton
@@ -86,20 +88,26 @@ fun PersonalLibrarySettings(
     var testing by rememberSaveable { mutableStateOf(false) }
     var syncingFavorites by rememberSaveable { mutableStateOf(false) }
     var favoriteSyncSummary by rememberSaveable { mutableStateOf("") }
+    var favoriteSyncDetailed by rememberSaveable { mutableStateOf("") }
     var syncingPlaylists by rememberSaveable { mutableStateOf(false) }
     var playlistSyncSummary by rememberSaveable { mutableStateOf("") }
+    var playlistSyncDetailed by rememberSaveable { mutableStateOf("") }
     var syncingHistory by rememberSaveable { mutableStateOf(false) }
     var historySyncSummary by rememberSaveable { mutableStateOf("") }
+    var historySyncDetailed by rememberSaveable { mutableStateOf("") }
     var historySyncEpochMs by rememberPreference(PersonalLibraryHistorySyncEpochMsKey, 0L)
     var syncingAll by rememberSaveable { mutableStateOf(false) }
     var syncingRatings by rememberSaveable { mutableStateOf(false) }
     var ratingSyncSummary by rememberSaveable { mutableStateOf("") }
+    var ratingSyncDetailed by rememberSaveable { mutableStateOf("") }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var searching by rememberSaveable { mutableStateOf(false) }
     var searchResults by remember { mutableStateOf(emptyList<SubsonicSong>()) }
+    var manualSetupOpen by rememberSaveable { mutableStateOf(serverUrl.isNotBlank()) }
+    var showSyncDetails by rememberSaveable { mutableStateOf(false) }
 
     val connectedMessage = stringResource(R.string.personal_library_connection_ok)
-    val failedPrefix = stringResource(R.string.personal_library_connection_failed)
+    val libraryErrorMessage = UserFacingErrors.libraryMessage(context)
 
     Column(
         modifier = Modifier
@@ -114,15 +122,6 @@ fun PersonalLibrarySettings(
             ),
         )
 
-        if (serverUrl.isBlank()) {
-            RetroButton(
-                onClick = { navController.navigate("link_computer") },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.phone_link_scan_qr))
-            }
-        }
-
         RetroSurface(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -133,6 +132,30 @@ fun PersonalLibrarySettings(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                if (serverUrl.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.personal_library_qr_first_title),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = stringResource(R.string.personal_library_qr_first_body),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    RetroButton(
+                        onClick = { navController.navigate("link_computer") },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.phone_link_scan_qr))
+                    }
+                } else {
+                    Text(
+                        text = connectedMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -148,6 +171,17 @@ fun PersonalLibrarySettings(
                     )
                 }
 
+                if (!manualSetupOpen && serverUrl.isBlank()) {
+                    Text(
+                        text = stringResource(R.string.personal_library_manual_setup),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier =
+                            Modifier.clickable { manualSetupOpen = true },
+                    )
+                }
+
+                if (manualSetupOpen || serverUrl.isNotBlank()) {
                 OutlinedTextField(
                     value = serverUrl,
                     onValueChange = { serverUrl = it.trim() },
@@ -201,7 +235,7 @@ fun PersonalLibrarySettings(
                                 }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -214,6 +248,7 @@ fun PersonalLibrarySettings(
                             stringResource(R.string.personal_library_test_connection)
                         }
                     )
+                }
                 }
             }
         }
@@ -232,6 +267,22 @@ fun PersonalLibrarySettings(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.product_ux_view_sync_details),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    RetroToggle(
+                        checked = showSyncDetails,
+                        onCheckedChange = { showSyncDetails = it },
+                    )
+                }
 
                 Text(
                     text = stringResource(R.string.personal_library_sync_all_desc),
@@ -256,9 +307,13 @@ fun PersonalLibrarySettings(
                         syncingHistory = true
                         syncingRatings = true
                         favoriteSyncSummary = ""
+                        favoriteSyncDetailed = ""
                         playlistSyncSummary = ""
+                        playlistSyncDetailed = ""
                         historySyncSummary = ""
+                        historySyncDetailed = ""
                         ratingSyncSummary = ""
+                        ratingSyncDetailed = ""
                         coroutineScope.launch {
                             val client = SubsonicClient(
                                 PersonalLibraryCredentials(
@@ -287,36 +342,44 @@ fun PersonalLibrarySettings(
                                     val playlists = syncResult.playlists
                                     val history = syncResult.history
                                     historySyncEpochMs = history.lastSyncedEpochMs
-                                    favoriteSyncSummary = context.getString(
+                                    favoriteSyncDetailed = context.getString(
                                         R.string.personal_library_sync_summary,
                                         favorites.remoteFavorites,
                                         favorites.importedFavorites,
                                         favorites.updatedFavorites,
                                         favorites.pushedFavorites,
                                     )
-                                    playlistSyncSummary = context.getString(
+                                    favoriteSyncSummary =
+                                        context.getString(R.string.personal_library_sync_favorites_done)
+                                    playlistSyncDetailed = context.getString(
                                         R.string.personal_library_sync_playlists_summary,
                                         playlists.remotePlaylists,
                                         playlists.importedPlaylists,
                                         playlists.updatedPlaylists,
                                         playlists.pushedPlaylists,
                                     )
-                                    historySyncSummary = context.getString(
+                                    playlistSyncSummary =
+                                        context.getString(R.string.personal_library_sync_playlists_done)
+                                    historySyncDetailed = context.getString(
                                         R.string.personal_library_sync_history_summary,
                                         history.pulledPlays,
                                         history.pushedScrobbles,
                                         history.skippedEvents,
                                     )
-                                    ratingSyncSummary = context.getString(
+                                    historySyncSummary =
+                                        context.getString(R.string.personal_library_sync_history_done)
+                                    ratingSyncDetailed = context.getString(
                                         R.string.personal_library_sync_ratings_summary,
                                         ratings.remoteRatings,
                                         ratings.importedRatings,
                                         ratings.pushedRatings,
                                     )
+                                    ratingSyncSummary =
+                                        context.getString(R.string.personal_library_sync_ratings_done)
                                 }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -342,6 +405,7 @@ fun PersonalLibrarySettings(
                     onClick = {
                         syncingRatings = true
                         ratingSyncSummary = ""
+                        ratingSyncDetailed = ""
                         coroutineScope.launch {
                             val client = SubsonicClient(
                                 PersonalLibraryCredentials(
@@ -357,16 +421,18 @@ fun PersonalLibrarySettings(
                             syncingRatings = false
                             result
                                 .onSuccess {
-                                    ratingSyncSummary = context.getString(
+                                    ratingSyncDetailed = context.getString(
                                         R.string.personal_library_sync_ratings_summary,
                                         it.remoteRatings,
                                         it.importedRatings,
                                         it.pushedRatings,
                                     )
+                                    ratingSyncSummary =
+                                        context.getString(R.string.personal_library_sync_ratings_done)
                                 }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -381,19 +447,18 @@ fun PersonalLibrarySettings(
                     )
                 }
 
-                if (ratingSyncSummary.isNotBlank()) {
-                    Text(
-                        text = ratingSyncSummary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PersonalLibrarySyncSummaryLine(
+                    summary = ratingSyncSummary,
+                    detailed = ratingSyncDetailed,
+                    showDetails = showSyncDetails,
+                )
 
                 RetroButton(
                     enabled = !syncingFavorites && serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank(),
                     onClick = {
                         syncingFavorites = true
                         favoriteSyncSummary = ""
+                        favoriteSyncDetailed = ""
                         coroutineScope.launch {
                             val client = SubsonicClient(
                                 PersonalLibraryCredentials(
@@ -409,17 +474,19 @@ fun PersonalLibrarySettings(
                             syncingFavorites = false
                             result
                                 .onSuccess {
-                                    favoriteSyncSummary = context.getString(
+                                    favoriteSyncDetailed = context.getString(
                                         R.string.personal_library_sync_summary,
                                         it.remoteFavorites,
                                         it.importedFavorites,
                                         it.updatedFavorites,
                                         it.pushedFavorites,
                                     )
+                                    favoriteSyncSummary =
+                                        context.getString(R.string.personal_library_sync_favorites_done)
                                 }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -434,13 +501,11 @@ fun PersonalLibrarySettings(
                     )
                 }
 
-                if (favoriteSyncSummary.isNotBlank()) {
-                    Text(
-                        text = favoriteSyncSummary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PersonalLibrarySyncSummaryLine(
+                    summary = favoriteSyncSummary,
+                    detailed = favoriteSyncDetailed,
+                    showDetails = showSyncDetails,
+                )
 
                 Text(
                     text = stringResource(R.string.personal_library_sync_playlists_desc),
@@ -453,6 +518,7 @@ fun PersonalLibrarySettings(
                     onClick = {
                         syncingPlaylists = true
                         playlistSyncSummary = ""
+                        playlistSyncDetailed = ""
                         coroutineScope.launch {
                             val client = SubsonicClient(
                                 PersonalLibraryCredentials(
@@ -468,17 +534,19 @@ fun PersonalLibrarySettings(
                             syncingPlaylists = false
                             result
                                 .onSuccess {
-                                    playlistSyncSummary = context.getString(
+                                    playlistSyncDetailed = context.getString(
                                         R.string.personal_library_sync_playlists_summary,
                                         it.remotePlaylists,
                                         it.importedPlaylists,
                                         it.updatedPlaylists,
                                         it.pushedPlaylists,
                                     )
+                                    playlistSyncSummary =
+                                        context.getString(R.string.personal_library_sync_playlists_done)
                                 }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -493,13 +561,11 @@ fun PersonalLibrarySettings(
                     )
                 }
 
-                if (playlistSyncSummary.isNotBlank()) {
-                    Text(
-                        text = playlistSyncSummary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PersonalLibrarySyncSummaryLine(
+                    summary = playlistSyncSummary,
+                    detailed = playlistSyncDetailed,
+                    showDetails = showSyncDetails,
+                )
 
                 Text(
                     text = stringResource(R.string.personal_library_sync_history_desc),
@@ -512,6 +578,7 @@ fun PersonalLibrarySettings(
                     onClick = {
                         syncingHistory = true
                         historySyncSummary = ""
+                        historySyncDetailed = ""
                         coroutineScope.launch {
                             val client = SubsonicClient(
                                 PersonalLibraryCredentials(
@@ -532,16 +599,18 @@ fun PersonalLibrarySettings(
                             result
                                 .onSuccess {
                                     historySyncEpochMs = it.lastSyncedEpochMs
-                                    historySyncSummary = context.getString(
+                                    historySyncDetailed = context.getString(
                                         R.string.personal_library_sync_history_summary,
                                         it.pulledPlays,
                                         it.pushedScrobbles,
                                         it.skippedEvents,
                                     )
+                                    historySyncSummary =
+                                        context.getString(R.string.personal_library_sync_history_done)
                                 }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -556,13 +625,11 @@ fun PersonalLibrarySettings(
                     )
                 }
 
-                if (historySyncSummary.isNotBlank()) {
-                    Text(
-                        text = historySyncSummary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                PersonalLibrarySyncSummaryLine(
+                    summary = historySyncSummary,
+                    detailed = historySyncDetailed,
+                    showDetails = showSyncDetails,
+                )
             }
         }
 
@@ -607,7 +674,7 @@ fun PersonalLibrarySettings(
                                 .onSuccess { searchResults = it }
                                 .onFailure {
                                     Toast
-                                        .makeText(context, "$failedPrefix: ${it.message}", Toast.LENGTH_LONG)
+                                        .makeText(context, libraryErrorMessage, Toast.LENGTH_LONG)
                                         .show()
                                 }
                         }
@@ -670,5 +737,19 @@ fun PersonalLibrarySettings(
                 )
             }
         },
+    )
+}
+
+@Composable
+private fun PersonalLibrarySyncSummaryLine(
+    summary: String,
+    detailed: String,
+    showDetails: Boolean,
+) {
+    if (summary.isBlank()) return
+    Text(
+        text = if (showDetails && detailed.isNotBlank()) detailed else summary,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }

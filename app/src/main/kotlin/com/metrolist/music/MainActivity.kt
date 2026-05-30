@@ -707,14 +707,7 @@ class MainActivity : ComponentActivity() {
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
                 val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
-                val navigationItems =
-                    remember(listenTogetherInTopBar) {
-                        if (listenTogetherInTopBar) {
-                            Screens.MainScreens
-                        } else {
-                            Screens.MainScreensWithListenTogether
-                        }
-                    }
+                val navigationItems = remember { Screens.MainScreens }
                 val routeIndexMap = remember(navigationItems) {
                     navigationItems.mapIndexed { i, s -> s.route to i }.toMap()
                 }
@@ -1064,6 +1057,20 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 Text("|", color = RetroTokens.BorderMuted)
                                             }
+                                            IconButton(
+                                                onClick = {
+                                                    navController.navigate("settings") {
+                                                        launchSingleTop = true
+                                                    }
+                                                },
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.settings),
+                                                    contentDescription = stringResource(R.string.settings),
+                                                    tint = RetroTokens.TextSoft,
+                                                )
+                                            }
+                                            Text("|", color = RetroTokens.BorderMuted)
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {

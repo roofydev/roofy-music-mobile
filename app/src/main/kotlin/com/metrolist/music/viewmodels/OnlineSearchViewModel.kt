@@ -47,6 +47,7 @@ constructor(
     }
     val filter = MutableStateFlow<YouTube.SearchFilter?>(null)
     var summaryPage by mutableStateOf<SearchSummaryPage?>(null)
+    var searchFailed by mutableStateOf(false)
     val viewStateMap = mutableStateMapOf<String, ItemsPage?>()
 
     private suspend fun loadSummaryPage() {
@@ -54,6 +55,7 @@ constructor(
             YouTube
                 .searchSummary(query)
                 .onSuccess {
+                    searchFailed = false
                     val hideExplicit = context.dataStore.get(HideExplicitKey, false)
                     val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
                     val hideYoutubeShorts = context.dataStore.get(HideYoutubeShortsKey, false)
@@ -62,6 +64,7 @@ constructor(
                           .filterVideoSongs(hideVideoSongs)
                           .filterYoutubeShorts(hideYoutubeShorts)
                 }.onFailure {
+                    searchFailed = true
                     reportException(it)
                 }
         }

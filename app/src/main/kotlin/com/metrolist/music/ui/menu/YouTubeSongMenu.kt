@@ -493,34 +493,6 @@ fun YouTubeSongMenu(
                             )
                         }
                     }
-                    if (song.historyRemoveToken != null) {
-                        add(
-                            Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.remove_from_history)) },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.delete),
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    coroutineScope.launch {
-                                        Timber.d("[HISTORY_REMOVE] Removing song ${song.id} from YTM history")
-                                        YouTube.feedback(listOf(song.historyRemoveToken!!))
-                                            .onSuccess {
-                                                Timber.d("[HISTORY_REMOVE] Successfully removed from YTM history")
-                                            }
-                                            .onFailure { e ->
-                                                Timber.e(e, "[HISTORY_REMOVE] Failed to remove from YTM history")
-                                            }
-                                        delay(500)
-                                        onHistoryRemoved()
-                                        onDismiss()
-                                    }
-                                }
-                            )
-                        )
-                    }
                     add(
                         Material3MenuItemData(
                             title = { 
@@ -828,6 +800,35 @@ fun YouTubeSongMenu(
                     )
                 }
             )
+        }
+
+        if (song.historyRemoveToken != null) {
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+
+            item {
+                Material3MenuGroup(
+                    items =
+                        listOf(
+                            Material3MenuItemData(
+                                title = { Text(text = stringResource(R.string.remove_from_history)) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.delete),
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    coroutineScope.launch {
+                                        YouTube.feedback(listOf(song.historyRemoveToken!!))
+                                        delay(500)
+                                        onHistoryRemoved()
+                                        onDismiss()
+                                    }
+                                },
+                            ),
+                        ),
+                )
+            }
         }
     }
 }

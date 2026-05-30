@@ -42,7 +42,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -96,6 +96,7 @@ import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.db.entities.SearchHistory
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.ui.component.EmptyPlaceholder
 import com.metrolist.music.ui.component.LocalMenuState
@@ -109,6 +110,8 @@ import com.metrolist.music.ui.menu.YouTubeSongMenu
 import com.metrolist.music.ui.theme.RetroListItem
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.viewmodels.LocalFilter
+import com.metrolist.music.viewmodels.LocalSearchViewModel
 import com.metrolist.music.viewmodels.OnlineSearchViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -123,6 +126,7 @@ fun OnlineSearchResult(
     pureBlack: Boolean = false,
     savedStateHandle: SavedStateHandle? = null
 ) {
+    val context = LocalContext.current
     val database = LocalDatabase.current
     val menuState = LocalMenuState.current
     val playerConnection = LocalPlayerConnection.current ?: return
@@ -211,8 +215,18 @@ fun OnlineSearchResult(
         }
     }
 
+    val localSearchViewModel: LocalSearchViewModel = hiltViewModel()
+    val localSearchResult by localSearchViewModel.result.collectAsStateWithLifecycle()
+
+    LaunchedEffect(decodedQuery) {
+        localSearchViewModel.query.value = decodedQuery
+        localSearchViewModel.filter.value = LocalFilter.ALL
+        viewModel.filter.value = null
+    }
+
     val searchFilter by viewModel.filter.collectAsStateWithLifecycle()
     val searchSummary = viewModel.summaryPage
+    val searchFailed = viewModel.searchFailed
     val itemsPage by remember(searchFilter) {
         derivedStateOf {
             searchFilter?.value?.let {
@@ -349,7 +363,7 @@ fun OnlineSearchResult(
             textStyle = MaterialTheme.typography.bodyLarge,
             placeholder = {
                 Text(
-                    text = stringResource(R.string.search_yt_music),
+                    text = stringResource(R.string.search_unified_hint),
                     style = MaterialTheme.typography.bodyLarge,
                     color = RetroTokens.TextMuted,
                 )
@@ -420,47 +434,57 @@ fun OnlineSearchResult(
             Column(
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                val visibleChips =
-                    listOf(
-                        null to stringResource(R.string.filter_all),
-                        FILTER_SONG to stringResource(R.string.filter_songs),
-                    ).let { baseChips ->
-                        if (!hideVideoSongs) {
-                            baseChips + (FILTER_VIDEO to stringResource(R.string.filter_videos))
-                        } else {
-                            baseChips
-                        }
-                    } +
+                if (decodedQuery.isBlank()) {
+                    val visibleChips =
                         listOf(
-                            FILTER_ALBUM to stringResource(R.string.filter_albums),
-                            FILTER_ARTIST to stringResource(R.string.filter_artists),
-                            FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
-                            FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
-                            FILTER_PODCAST to stringResource(R.string.filter_podcasts),
-                            FILTER_EPISODE to stringResource(R.string.filter_episodes),
-                            FILTER_PROFILE to stringResource(R.string.filter_profiles),
-                        )
+                            null to stringResource(R.string.filter_all),
+                            FILTER_SONG to stringResource(R.string.filter_songs),
+                        ).let { baseChips ->
+                            if (!hideVideoSongs) {
+                                baseChips + (FILTER_VIDEO to stringResource(R.string.filter_videos))
+                            } else {
+                                baseChips
+                            }
+                        } +
+                            listOf(
+                                FILTER_ALBUM to stringResource(R.string.filter_albums),
+                                FILTER_ARTIST to stringResource(R.string.filter_artists),
+                                FILTER_COMMUNITY_PLAYLIST to stringResource(R.string.filter_community_playlists),
+                                FILTER_FEATURED_PLAYLIST to stringResource(R.string.filter_featured_playlists),
+                                FILTER_PODCAST to stringResource(R.string.filter_podcasts),
+                                FILTER_EPISODE to stringResource(R.string.filter_episodes),
+                                FILTER_PROFILE to stringResource(R.string.filter_profiles),
+                            )
 
-                ChipsRow(
-                    chips = visibleChips,
-                    currentValue = searchFilter,
-                    onValueUpdate = {
-                        if (viewModel.filter.value != it) {
-                            viewModel.filter.value = it
-                        }
-                        coroutineScope.launch {
-                            lazyListState.animateScrollToItem(0)
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                )
+                    ChipsRow(
+                        chips = visibleChips,
+                        currentValue = searchFilter,
+                        onValueUpdate = {
+                            if (viewModel.filter.value != it) {
+                                viewModel.filter.value = it
+                            }
+                            coroutineScope.launch {
+                                lazyListState.animateScrollToItem(0)
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    )
+                }
 
                 LazyColumn(
                     state = lazyListState,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    if (decodedQuery.isNotBlank()) {
+                        localSearchResultsSection(
+                            query = decodedQuery,
+                            result = localSearchResult,
+                            navController = navController,
+                        )
+                    }
+
                     if (searchFilter == null) {
                         searchSummary?.summaries?.forEach { summary ->
                             item {
@@ -480,11 +504,18 @@ fun OnlineSearchResult(
                             }
                         }
 
-                        if (searchSummary?.summaries?.isEmpty() == true) {
+                        if (searchFailed && searchSummary == null) {
                             item {
                                 EmptyPlaceholder(
                                     icon = R.drawable.search,
-                                    text = stringResource(R.string.no_results_found),
+                                    text = UserFacingErrors.searchMessage(context),
+                                )
+                            }
+                        } else if (searchSummary?.summaries?.isEmpty() == true) {
+                            item {
+                                EmptyPlaceholder(
+                                    icon = R.drawable.search,
+                                    text = stringResource(R.string.product_ux_search_empty),
                                 )
                             }
                         }
@@ -510,7 +541,7 @@ fun OnlineSearchResult(
                             item {
                                 EmptyPlaceholder(
                                     icon = R.drawable.search,
-                                    text = stringResource(R.string.no_results_found),
+                                    text = stringResource(R.string.product_ux_search_empty),
                                 )
                             }
                         }

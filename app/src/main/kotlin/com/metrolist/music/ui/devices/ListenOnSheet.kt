@@ -163,6 +163,9 @@ fun ColumnScope.ListenOnSheet(
     )
     Spacer(modifier = Modifier.height(20.dp))
 
+    ListenOnCastSection(onDismiss = onDismiss)
+    ListenOnWebControlSection(onDismiss = onDismiss)
+
     if (!isPaired) {
         Text(
             text = stringResource(R.string.listen_on_connect_body),
@@ -360,7 +363,7 @@ fun ColumnScope.ListenOnSheet(
 }
 
 @Composable
-private fun ListenOnDeviceRow(
+internal fun ListenOnDeviceRow(
     title: String,
     subtitle: String,
     iconRes: Int,

@@ -313,7 +313,7 @@ fun LocalSearchScreen(
                 item(key = "no_result") {
                     EmptyPlaceholder(
                         icon = R.drawable.search,
-                        text = stringResource(R.string.no_results_found),
+                        text = stringResource(R.string.product_ux_search_empty),
                     )
                 }
             }

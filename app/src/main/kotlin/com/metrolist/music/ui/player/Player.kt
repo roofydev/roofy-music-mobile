@@ -1126,7 +1126,7 @@ fun BottomSheetPlayer(
                         ) {
                             Icon(
                                 painter = painterResource(R.drawable.skip_next),
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.next),
                                 modifier = Modifier.size(28.dp),
                                 tint = if (canSkipNext && !isListenTogetherGuest) RetroTokens.Text else RetroTokens.TextDim,
                             )

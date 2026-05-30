@@ -43,7 +43,10 @@ import com.metrolist.music.constants.SongSortDescendingKey
 import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.constants.SongSortTypeKey
 import com.metrolist.music.constants.TopSize
+import androidx.media3.datasource.cache.SimpleCache
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.di.DownloadCache
+import com.metrolist.music.di.PlayerCache
 import com.metrolist.music.extensions.filterExplicit
 import com.metrolist.music.extensions.filterExplicitAlbums
 import com.metrolist.music.extensions.filterVideoSongs
@@ -52,6 +55,7 @@ import com.metrolist.music.extensions.matchesNormalizedQuery
 import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.playback.DownloadUtil
+import com.metrolist.music.playback.offlineSongsFlow
 import com.metrolist.music.utils.PodcastRefreshTrigger
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
@@ -79,10 +83,12 @@ import javax.inject.Inject
 class LibrarySongsViewModel
 @Inject
 constructor(
-    @ApplicationContext context: Context,
-    database: MusicDatabase,
+    @ApplicationContext private val context: Context,
+    private val database: MusicDatabase,
     downloadUtil: DownloadUtil,
     private val syncUtils: SyncUtils,
+    @PlayerCache private val playerCache: SimpleCache,
+    @DownloadCache private val downloadCache: SimpleCache,
 ) : ViewModel() {
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
@@ -112,7 +118,15 @@ constructor(
                 when (filter) {
                     SongFilter.LIBRARY -> database.songs(sortType, descending).map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
                     SongFilter.LIKED -> database.likedSongs(sortType, descending).map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
-                    SongFilter.DOWNLOADED -> database.downloadedSongs(sortType, descending).map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
+                    SongFilter.DOWNLOADED ->
+                        offlineSongsFlow(
+                            database = database,
+                            context = context,
+                            playerCache = playerCache,
+                            downloadCache = downloadCache,
+                            sortType = sortType,
+                            descending = descending,
+                        ).map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
                     SongFilter.UPLOADED -> database.uploadedSongs(sortType, descending).map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
                 }
             }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())

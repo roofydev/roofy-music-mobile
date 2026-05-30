@@ -521,28 +521,14 @@ fun DiscordSettings(
 
             // Login buttons below when not logged in
             if (!isLoggedIn) {
-                Row(
+                RetroButton(
+                    onClick = { navController.navigate("settings/discord/login") },
                     modifier =
                         Modifier
                             .fillMaxWidth()
                             .padding(start = 20.dp, end = 20.dp, bottom = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    RetroTextButton(
-                        text = stringResource(R.string.action_login),
-                        onClick = { navController.navigate("settings/discord/login") },
-                    )
-                    RetroButton(
-                        onClick = { showTokenDialog = true },
-                    ) {
-                        Icon(
-                            painterResource(R.drawable.token),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(stringResource(R.string.advanced_login))
-                    }
+                    Text(stringResource(R.string.action_login))
                 }
             }
         }
@@ -707,6 +693,19 @@ fun DiscordSettings(
                         ),
                 )
 
+                Material3SettingsGroup(
+                    title = stringResource(R.string.product_ux_technical_details),
+                    items =
+                        listOf(
+                            Material3SettingsItem(
+                                title = { Text(stringResource(R.string.advanced_login)) },
+                                onClick = { showTokenDialog = true },
+                            ),
+                        ),
+                )
+
+                Spacer(Modifier.height(8.dp))
+
                 // Variable hint
                 RetroSurface(
                     modifier =
@@ -762,8 +761,8 @@ fun DiscordSettings(
         Spacer(Modifier.height(24.dp))
     }
 
-    TopAppBar(
-        title = { Text(stringResource(R.string.discord_integration)) },
+        TopAppBar(
+        title = { Text(stringResource(R.string.discord_status_title)) },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

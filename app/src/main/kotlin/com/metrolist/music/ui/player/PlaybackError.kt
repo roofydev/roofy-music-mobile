@@ -6,6 +6,8 @@
 
 package com.metrolist.music.ui.player
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -18,8 +20,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -29,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.PlaybackException
 import com.metrolist.music.R
+import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.theme.RetroButton
 import com.metrolist.music.ui.theme.RetroTokens
 
@@ -37,12 +45,15 @@ fun PlaybackError(
     error: PlaybackException,
     retry: () -> Unit,
 ) {
-    // Build detailed error info for debugging
-    val rawErrorMessage = error.cause?.cause?.message 
-        ?: error.cause?.message 
-        ?: error.message 
-        ?: stringResource(R.string.error_unknown)
-    
+    val context = LocalContext.current
+    var showTechnicalDetails by remember { mutableStateOf(false) }
+
+    val rawErrorMessage =
+        error.cause?.cause?.message
+            ?: error.cause?.message
+            ?: error.message
+            ?: stringResource(R.string.error_unknown)
+
     val ageRestrictedSignals =
         listOf(
             "age-restricted",
@@ -54,77 +65,91 @@ fun PlaybackError(
             "confirm your age",
         )
     val isAgeRestricted = ageRestrictedSignals.any { rawErrorMessage.contains(it, ignoreCase = true) }
-    
-    val errorMessage = if (isAgeRestricted) {
-        "This app does not support playing age-restricted songs. We are working on fixing this issue."
-    } else {
-        rawErrorMessage
-    }
-    
+
+    val friendlyMessage =
+        if (isAgeRestricted) {
+            stringResource(R.string.product_ux_error_playback_age_restricted)
+        } else {
+            UserFacingErrors.playbackMessage(context, error)
+        }
+
+    val technicalSummary =
+        buildString {
+            append(rawErrorMessage)
+            append('\n')
+            append(
+                stringResource(
+                    R.string.product_ux_error_playback_code,
+                    getErrorCodeName(error.errorCode),
+                    error.errorCode,
+                ),
+            )
+        }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
     ) {
-        // Error icon
         Icon(
             painter = painterResource(R.drawable.error),
             contentDescription = null,
             tint = RetroTokens.Text,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(48.dp),
         )
-        
+
         Spacer(modifier = Modifier.height(12.dp))
-        
-        // Main error message
+
         Text(
-            text = stringResource(R.string.error_playback_failed),
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontFamily = FontFamily.Monospace,
-            ),
+            text = friendlyMessage,
+            style = MaterialTheme.typography.titleMedium,
             color = RetroTokens.Text,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
-        
+
         Spacer(modifier = Modifier.height(8.dp))
-        
-        // Error details
+
         Text(
-            text = errorMessage,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = FontFamily.Monospace,
-            ),
+            text =
+                if (showTechnicalDetails) {
+                    stringResource(R.string.product_ux_hide_technical_details)
+                } else {
+                    stringResource(R.string.product_ux_view_technical_details)
+                },
+            style = MaterialTheme.typography.labelMedium,
             color = RetroTokens.TextSoft,
             textAlign = TextAlign.Center,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis
+            modifier = Modifier.clickable { showTechnicalDetails = !showTechnicalDetails },
         )
-        
-        Spacer(modifier = Modifier.height(4.dp))
-        
-        // Error code
-        Text(
-            text = "Code: ${getErrorCodeName(error.errorCode)} (${error.errorCode})",
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp
-            ),
-            color = RetroTokens.TextMuted,
-            textAlign = TextAlign.Center
-        )
-        
+
+        AnimatedVisibility(visible = showTechnicalDetails) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = technicalSummary,
+                    style =
+                        MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                        ),
+                    color = RetroTokens.TextMuted,
+                    textAlign = TextAlign.Center,
+                    maxLines = 8,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
-        
-        // Retry button
-        RetroButton(
-            onClick = retry,
-        ) {
+
+        RetroButton(onClick = retry) {
             Icon(
                 painter = painterResource(R.drawable.replay),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(18.dp),
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(text = stringResource(R.string.retry))

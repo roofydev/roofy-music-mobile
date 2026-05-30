@@ -514,19 +514,26 @@ fun SongMenu(
         item {
             NewActionGrid(
                 actions =
-                    listOf(
-                        NewAction(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.edit),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            text = stringResource(R.string.edit),
-                            onClick = { showEditDialog = true },
-                        ),
+                    listOfNotNull(
+                        if (!isGuest) {
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.playlist_play),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                text = stringResource(R.string.play_next),
+                                onClick = {
+                                    onDismiss()
+                                    playerConnection.playNext(song.toMediaItem())
+                                },
+                            )
+                        } else {
+                            null
+                        },
                         NewAction(
                             icon = {
                                 Icon(
@@ -539,27 +546,25 @@ fun SongMenu(
                             text = stringResource(R.string.add_to_playlist),
                             onClick = { showChoosePlaylistDialog = true },
                         ),
-                        NewAction(
-                            icon = {
-                                Icon(
-                                    painter = painterResource(R.drawable.share),
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            },
-                            text = stringResource(R.string.share),
-                            onClick = {
-                                onDismiss()
-                                val intent =
-                                    Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        type = "text/plain"
-                                        putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
-                                    }
-                                context.startActivity(Intent.createChooser(intent, null))
-                            },
-                        ),
+                        if (!isGuest) {
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.queue_music),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                text = stringResource(R.string.add_to_queue),
+                                onClick = {
+                                    onDismiss()
+                                    playerConnection.addToQueue(song.toMediaItem())
+                                },
+                            )
+                        } else {
+                            null
+                        },
                     ),
                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
                 columns = if (isGuest) 2 else 3,
@@ -609,42 +614,6 @@ fun SongMenu(
                                 onClick = {
                                     onDismiss()
                                     playerConnection.playQueue(YouTubeQueue.radio(song.toMediaMetadata()))
-                                },
-                            )
-                        } else {
-                            null
-                        },
-                        if (!isGuest) {
-                            Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.play_next)) },
-                                description = { Text(text = stringResource(R.string.play_next_desc)) },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.playlist_play),
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    onDismiss()
-                                    playerConnection.playNext(song.toMediaItem())
-                                },
-                            )
-                        } else {
-                            null
-                        },
-                        if (!isGuest) {
-                            Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.add_to_queue)) },
-                                description = { Text(text = stringResource(R.string.add_to_queue_desc)) },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.queue_music),
-                                        contentDescription = null,
-                                    )
-                                },
-                                onClick = {
-                                    onDismiss()
-                                    playerConnection.addToQueue(song.toMediaItem())
                                 },
                             )
                         } else {
@@ -795,95 +764,6 @@ fun SongMenu(
                                         database.query {
                                             update(song.song.toggleLibrary())
                                         }
-                                    },
-                                ),
-                            )
-                        }
-                        if (event != null) {
-                            add(
-                                Material3MenuItemData(
-                                    title = { Text(text = stringResource(R.string.remove_from_history)) },
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(R.drawable.delete),
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        onDismiss()
-                                        database.query {
-                                            delete(event)
-                                        }
-                                    },
-                                ),
-                            )
-                        }
-                        if (playlistSong != null) {
-                            add(
-                                Material3MenuItemData(
-                                    title = { Text(text = stringResource(R.string.remove_from_playlist)) },
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(R.drawable.delete),
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        playlistSong.let { ps ->
-                                            val capturedSetVideoId = ps.map.setVideoId
-                                            database.transaction {
-                                                move(
-                                                    ps.map.playlistId,
-                                                    ps.map.position,
-                                                    Int.MAX_VALUE
-                                                )
-                                                delete(ps.map.copy(position = Int.MAX_VALUE))
-                                            }
-                                            playlistBrowseId?.let { browseId ->
-                                                syncUtils.scheduleRemoveFromPlaylist(
-                                                    browseId,
-                                                    ps.map.songId,
-                                                    ps.map.playlistId
-                                                ) {
-                                                    capturedSetVideoId
-                                                }
-                                            }
-                                            onDismiss()
-                                        }
-                                    },
-                                ),
-                            )
-                        }
-                        if (isFromCache) {
-                            add(
-                                Material3MenuItemData(
-                                    title = { Text(text = stringResource(R.string.remove_from_cache)) },
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(R.drawable.delete),
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        onDismiss()
-                                        cacheViewModel.removeSongFromCache(song.id)
-                                    },
-                                ),
-                            )
-                        }
-                        // Delete uploaded song option
-                        if (song.song.isUploaded) {
-                            add(
-                                Material3MenuItemData(
-                                    title = { Text(text = stringResource(R.string.delete_uploaded_song)) },
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(R.drawable.delete),
-                                            contentDescription = null,
-                                        )
-                                    },
-                                    onClick = {
-                                        showDeleteUploadedDialog = true
                                     },
                                 ),
                             )
@@ -1107,6 +987,39 @@ fun SongMenu(
                         }
                         add(
                             Material3MenuItemData(
+                                title = { Text(text = stringResource(R.string.edit)) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.edit),
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = { showEditDialog = true },
+                            ),
+                        )
+                        add(
+                            Material3MenuItemData(
+                                title = { Text(text = stringResource(R.string.share)) },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.share),
+                                        contentDescription = null,
+                                    )
+                                },
+                                onClick = {
+                                    onDismiss()
+                                    val intent =
+                                        Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, "https://music.youtube.com/watch?v=${song.id}")
+                                        }
+                                    context.startActivity(Intent.createChooser(intent, null))
+                                },
+                            ),
+                        )
+                        add(
+                            Material3MenuItemData(
                                 title = { Text(text = stringResource(R.string.refetch)) },
                                 description = { Text(text = stringResource(R.string.refetch_desc)) },
                                 icon = {
@@ -1151,6 +1064,111 @@ fun SongMenu(
                         )
                     },
             )
+        }
+
+        val hasDestructiveActions =
+            event != null ||
+                playlistSong != null ||
+                isFromCache ||
+                song.song.isUploaded
+        if (hasDestructiveActions) {
+            item { Spacer(modifier = Modifier.height(12.dp)) }
+
+            item {
+                Material3MenuGroup(
+                    items =
+                        buildList {
+                            if (event != null) {
+                                add(
+                                    Material3MenuItemData(
+                                        title = { Text(text = stringResource(R.string.remove_from_history)) },
+                                        icon = {
+                                            Icon(
+                                                painter = painterResource(R.drawable.delete),
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            onDismiss()
+                                            database.query {
+                                                delete(event)
+                                            }
+                                        },
+                                    ),
+                                )
+                            }
+                            if (playlistSong != null) {
+                                add(
+                                    Material3MenuItemData(
+                                        title = { Text(text = stringResource(R.string.remove_from_playlist)) },
+                                        icon = {
+                                            Icon(
+                                                painter = painterResource(R.drawable.delete),
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            playlistSong.let { ps ->
+                                                val capturedSetVideoId = ps.map.setVideoId
+                                                database.transaction {
+                                                    move(
+                                                        ps.map.playlistId,
+                                                        ps.map.position,
+                                                        Int.MAX_VALUE,
+                                                    )
+                                                    delete(ps.map.copy(position = Int.MAX_VALUE))
+                                                }
+                                                playlistBrowseId?.let { browseId ->
+                                                    syncUtils.scheduleRemoveFromPlaylist(
+                                                        browseId,
+                                                        ps.map.songId,
+                                                        ps.map.playlistId,
+                                                    ) {
+                                                        capturedSetVideoId
+                                                    }
+                                                }
+                                                onDismiss()
+                                            }
+                                        },
+                                    ),
+                                )
+                            }
+                            if (isFromCache) {
+                                add(
+                                    Material3MenuItemData(
+                                        title = { Text(text = stringResource(R.string.remove_from_cache)) },
+                                        icon = {
+                                            Icon(
+                                                painter = painterResource(R.drawable.delete),
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            onDismiss()
+                                            cacheViewModel.removeSongFromCache(song.id)
+                                        },
+                                    ),
+                                )
+                            }
+                            if (song.song.isUploaded) {
+                                add(
+                                    Material3MenuItemData(
+                                        title = { Text(text = stringResource(R.string.delete_uploaded_song)) },
+                                        icon = {
+                                            Icon(
+                                                painter = painterResource(R.drawable.delete),
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            showDeleteUploadedDialog = true
+                                        },
+                                    ),
+                                )
+                            }
+                        },
+                )
+            }
         }
     }
 }

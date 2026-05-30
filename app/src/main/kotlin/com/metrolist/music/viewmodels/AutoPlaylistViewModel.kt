@@ -15,10 +15,14 @@ import com.metrolist.music.constants.HideVideoSongsKey
 import com.metrolist.music.constants.SongSortDescendingKey
 import com.metrolist.music.constants.SongSortType
 import com.metrolist.music.constants.SongSortTypeKey
+import androidx.media3.datasource.cache.SimpleCache
 import com.metrolist.music.db.MusicDatabase
+import com.metrolist.music.di.DownloadCache
+import com.metrolist.music.di.PlayerCache
 import com.metrolist.music.extensions.filterExplicit
 import com.metrolist.music.extensions.filterVideoSongs
 import com.metrolist.music.extensions.toEnum
+import com.metrolist.music.playback.offlineSongsFlow
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +33,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -39,10 +42,12 @@ import javax.inject.Inject
 class AutoPlaylistViewModel
 @Inject
 constructor(
-    @ApplicationContext context: Context,
+    @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
     savedStateHandle: SavedStateHandle,
     private val syncUtils: SyncUtils,
+    @PlayerCache private val playerCache: SimpleCache,
+    @DownloadCache private val downloadCache: SimpleCache,
 ) : ViewModel() {
     val playlist = savedStateHandle.get<String>("playlist")!!
 
@@ -64,14 +69,25 @@ constructor(
             .flatMapLatest { (sortDesc, hideExplicit, hideVideoSongs) ->
                 val (sortType, descending) = sortDesc
                 when (playlist) {
-                    "liked" -> database.likedSongs(sortType, descending)
-                        .map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
+                    "liked" ->
+                        database.likedSongs(sortType, descending).map {
+                            it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs)
+                        }
 
-                    "downloaded" -> database.downloadedSongs(sortType, descending)
-                        .map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
+                    "downloaded" ->
+                        offlineSongsFlow(
+                            database = database,
+                            context = context,
+                            playerCache = playerCache,
+                            downloadCache = downloadCache,
+                            sortType = sortType,
+                            descending = descending,
+                        )
 
-                    "uploaded" -> database.uploadedSongs(sortType, descending)
-                        .map { it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs) }
+                    "uploaded" ->
+                        database.uploadedSongs(sortType, descending).map {
+                            it.filterExplicit(hideExplicit).filterVideoSongs(hideVideoSongs)
+                        }
 
                     else -> kotlinx.coroutines.flow.flowOf(emptyList())
                 }

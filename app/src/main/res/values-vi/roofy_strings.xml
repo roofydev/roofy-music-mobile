@@ -10,7 +10,7 @@
     <string name="offline">Đã tải xuống</string>
     <string name="my_top">Top nghe nhiều</string>
     <string name="sync_playlist">Đồng bộ danh sách phát</string>
-    <string name="allows_for_sync_witch_youtube">LƯU Ý: Tùy chọn này cho phép đồng bộ hóa với YouTube Music và KHÔNG THỂ thay đổi sau này</string>
+    <string name="allows_for_sync_witch_youtube">Note: This enables sync with the online catalog and cannot be changed later.</string>
     <string name="select">Chọn tất cả</string>
     <string name="like_all">Thích tất cả</string>
     <string name="dislike_all">Không thích toàn bộ</string>
@@ -41,7 +41,7 @@
     <string name="enable_similar_content">Bật hiển thị nội dung tương tự</string>
     <string name="similar_content_desc">Tự động thêm các bài hát tương tự khi phát hết danh sách hàng chờ</string>
     <string name="percentage_format">%d%%</string>
-    <string name="clear_song_cache_dialog">Bạn có muốn xóa tất cả bộ nhớ đệm (cache) liên quan đến nhạc?</string>
+    <string name="clear_song_cache_dialog">Clear all streaming buffer songs?</string>
     <string name="clear_downloads_dialog">Bạn có muốn xóa tất cả bài hát đã tải xuống?</string>
     <string name="not_logged_in_youtube">Chưa đăng nhập vào YouTube</string>
     <string name="default_links">Mở đường liên kết được hỗ trợ</string>
@@ -64,7 +64,7 @@
     </plurals>
     <string name="lyrics_auto_scroll">Tự động cuộn lời bài hát</string>
     <string name="show_top_playlist">Hiện danh sách phát hàng đầu</string>
-    <string name="show_cached_playlist">Hiện danh sách phát có trong bộ nhớ đệm</string>
+    <string name="show_cached_playlist">Show streaming buffer playlist (advanced)</string>
     <string name="import_csv">Nhập danh sách phát từ tệp CSV</string>
     <string name="import_online">Nhập danh sách phát từ tệp M3U</string>
     <string name="charts">Biểu đồ</string>
@@ -77,7 +77,7 @@
     <string name="max_selection_limit">Đã đạt đến giới hạn lựa chọn tối đa</string>
     <string name="share_selected">Chia sẻ mục đã chọn</string>
     <string name="customize_colors">Tùy chỉnh màu sắc</string>
-    <string name="remove_from_cache">Xoá khỏi bộ đệm</string>
+    <string name="remove_from_cache">Remove from streaming buffer</string>
     <string name="copy_link">Sao chép link</string>
     <string name="link_copied">Link đã được sao chép vào bộ nhớ đệm</string>
     <string name="player_buttons_style">Màu của các nút trong trình phát</string>
@@ -95,7 +95,7 @@
     <string name="player_background_style">Kiểu nền của trình phát</string>
     <string name="trending">Thịnh hành</string>
     <string name="share_lyrics">Chia sẻ lời bài hát</string>
-    <string name="cached_playlist">Đã lưu vào bộ đệm</string>
+    <string name="cached_playlist">Offline buffer</string>
     <string name="lyrics_romanize_japanese">La-tinh hóa lời bài hát tiếng Nhật</string>
     <string name="lyrics_romanize_korean">La-tinh hóa lời bài hát tiếng Hàn</string>
     <string name="yt_sync">Tự động đồng bộ tài khoản</string>
@@ -105,7 +105,7 @@
     <string name="auto_download_on_like_desc">Tự động tải xuống các bài hát khi bạn thích chúng</string>
     <string name="new_player_design">Thiết kế trình phát mới</string>
     <string name="swipe_sensitivity">Độ nhạy vuốt của trình phát mini</string>
-    <string name="clear_image_cache_dialog">Bạn có chắc chắn muốn xóa toàn bộ hình ảnh đã lưu trong bộ nhớ đệm không?</string>
+    <string name="clear_image_cache_dialog">Clear all stored artwork?</string>
     <string name="disable">Vô hiệu hóa</string>
     <string name="subscribe">Đăng ký</string>
     <string name="subscribed">Đã đăng ký</string>
@@ -128,7 +128,7 @@
     <string name="settings_section_system">Hệ thống &amp; Thông tin</string>
     <string name="starting_radio">Radio đang bắt đầu…</string>
     <string name="edit_playlist_cover">Chỉnh sửa ảnh bìa danh sách phát</string>
-    <string name="edit_playlist_cover_note">LƯU Ý: Tài khoản của bạn phải được liên kết với số điện thoại và được xác minh trên YouTube Music để thay đổi ảnh bìa danh sách phát</string>
+    <string name="edit_playlist_cover_note">Note: Your online catalog account must be verified with a phone number to change playlist artwork.</string>
     <string name="edit_playlist_cover_note_wait">Sau khi chọn hình ảnh, vui lòng đợi để ảnh bìa mới xuất hiện trong danh sách phát của bạn</string>
     <string name="config_proxy">Cấu hình proxy</string>
     <string name="proxy_username">Tên người dùng proxy</string>
@@ -159,7 +159,7 @@
     <string name="download_in_progress_desc">Đang tải xuống</string>
     <string name="share_playlist_desc">Chia sẻ danh sách phát này</string>
     <string name="delete_playlist_desc">Xóa danh sách phát này vĩnh viễn</string>
-    <string name="sync_playlist_desc">Đồng bộ danh sách phát này với YouTube Music</string>
+    <string name="sync_playlist_desc">Sync this playlist with the online catalog</string>
     <string name="primary_color_style">Kiểu màu chính</string>
     <string name="tertiary_color_style">Kiểu màu tam cấp (phụ)</string>
     <string name="swipe_song_to_remove">Vuốt bài hát để xóa khỏi danh sách phát</string>
@@ -348,7 +348,7 @@
     <string name="add_to_library_desc">Lưu vào thư viện</string>
     <string name="download_desc">Tải xuống để phát ngoại tuyến</string>
     <string name="add_to_playlist_desc">Thêm vào danh sách phát</string>
-    <string name="refetch_desc">Tải lại siêu dữ liệu từ YouTube Music</string>
+    <string name="refetch_desc">Refresh song details from the online catalog</string>
     <string name="share_desc">Chia sẻ liên kết cho bài hát này</string>
     <string name="delete_desc">Xóa vĩnh viễn bài hát này</string>
     <string name="advanced_desc">Điều chỉnh tốc độ (tempo) và cao độ (pitch) của bài hát</string>
@@ -379,7 +379,7 @@
     <string name="density_restart_message">Mật độ hiển thị đã thay đổi sẽ có hiệu lực ngay sau khi khởi động lại ứng dụng. Bạn có muốn khởi động lại ngay không?</string>
     <string name="enable_lrclib_desc">Cơ sở dữ liệu lời bài hát khớp thời gian do cộng đồng đóng góp</string>
     <string name="enable_kugou_desc">Lời bài hát được lấy từ KuGou, một nền tảng âm nhạc phổ biến của Trung Quốc</string>
-    <string name="youtube_music_lyrics_note">LƯU Ý: Lời bài hát từ YouTube Music sẽ được hiển thị tự động khi không có nguồn nào khác. Lời bài hát của chúng thường không được đồng bộ với nhau</string>
+    <string name="youtube_music_lyrics_note">Note: Online catalog lyrics may appear when no other source is available. They are often out of sync with the song.</string>
     <string name="enable_lyricsplus">Bật nhà cung cấp lời bài hát LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Đồng bộ lời bài hát từ nhiều nguồn</string>
     <string name="lyrics_provider_selection">Chọn bên cung cấp</string>
@@ -420,17 +420,17 @@
     <string name="enable_scrobbling">Kích hoạt scrobbling</string>
     <string name="lastfm_now_playing">Gửi trạng thái Đang phát</string>
     <string name="last_fm_send_likes">Đồng bộ bài hát Yêu thích và Không yêu thích</string>
-    <string name="scrobbling_configuration">Cấu hình Scrobble</string>
-    <string name="scrobble_min_track_duration">Scrobble các bài hát dài hơn (giây)</string>
-    <string name="scrobble_delay_percent">Độ trễ scrobble (phần trăm)</string>
-    <string name="scrobble_delay_minutes">Phút chờ Scrobble (phút)</string>
+    <string name="scrobbling_configuration">Listening history settings</string>
+    <string name="scrobble_min_track_duration">Only log songs longer than (seconds)</string>
+    <string name="scrobble_delay_percent">Log to listening history after this much of the song (%)</string>
+    <string name="scrobble_delay_minutes">Wait before logging a play (minutes)</string>
     <string name="hide_youtube_shorts">Ẩn YouTube Shorts</string>
     <string name="start_radio_desc">Bắt đầu phát radio dựa trên mục này</string>
     <string name="enable_dynamic_icon">Biểu tượng ứng dụng thích ứng</string>
     <string name="mini_player">Trình phát mini</string>
     <string name="pure_black_mini_player">Trình phát mini đen thuần</string>
     <string name="cache_size_warning_title">Từ từ đã!</string>
-    <string name="cache_size_warning_message">Giới hạn bạn đã chọn (%1$s) nhỏ hơn dung lượng ứng dụng hiện đang sử dụng. Tiếp tục có thể khiến một số %2$s trong bộ nhớ đệm bị xóa. Bạn vẫn muốn tiếp tục chứ?</string>
+    <string name="cache_size_warning_message">The limit you chose (%1$s) is smaller than what the app is using. Some stored %2$s may be removed. Continue anyway?</string>
     <string name="cache_size_warning_confirm">Tiếp tục</string>
     <string name="lyrics_animation_style">Phong cách hoạt hình cho lời bài hát</string>
     <string name="album_art_for">Ảnh album cho %s</string>
@@ -544,8 +544,8 @@
     <string name="error_eq_apply_failed">Không thể áp dụng cấu hình bộ cân bằng âm thanh: %1$s</string>
     <string name="weekly_most_playlist_name">Top Tuần</string>
     <string name="monthly_most_playlist_name">Top Tháng</string>
-    <string name="enable_song_cache">Bật bộ nhớ đệm bài hát</string>
-    <string name="enable_song_cache_desc">Tự động lưu vào bộ nhớ đệm các bài hát để phát lại nhanh hơn trong tương lai</string>
+    <string name="enable_song_cache">Buffer streams while playing</string>
+    <string name="enable_song_cache_desc">Keeps a temporary copy for smoother replay. Saved offline music is separate.</string>
     <string name="sleep_timer_stop_after_current_song_title">Dừng phát khi kết thúc bài hát hiện tại</string>
     <string name="wrapped_playlist_title">Nhìn lại %s</string>
     <string name="sort_ascending">Phân loại từ dưới lên trên</string>
@@ -736,7 +736,6 @@
     <string name="discord_button_1">Nút 1</string>
     <string name="discord_button_2">Nút 2</string>
     <string name="login_successful">Đăng nhập thành công!</string>
-    <string name="discord_information_warning">Tính năng này sử dụng thư viện KizzyRPC để kết nối với Discord Gateway và cập nhật trạng thái Rich Presence của bạn. Mặc dù chưa có báo cáo nào về việc bị đình chỉ tài khoản do sử dụng phương thức tương tự, nhưng cách làm này không được Discord hỗ trợ chính thức và có thể bị coi là vi phạm Điều khoản dịch vụ. Token của bạn được xử lý cục bộ và không bao giờ được gửi đến máy chủ của bên thứ ba. Hãy tự chịu trách nhiệm khi tiếp tục!</string>
     <string name="discord_activity_type">Loại hoạt động</string>
     <string name="discord_activity_playing">Đang phát</string>
     <string name="discord_activity_listening">Đang nghe</string>
@@ -786,7 +785,7 @@
     <string name="android_auto_visible_sections">Các phần hiển thị</string>
     <string name="android_auto_reorder_hint">Nhấn vào một phần để bật hoặc tắt phần đó.\nNhấn và giữ thanh kéo để sắp xếp lại thứ tự. Phần đầu tiên sẽ được hiển thị theo mặc định</string>
     <string name="android_auto_youtube_playlists">Hiển thị danh sách phát được đề xuất trên YouTube</string>
-    <string name="android_auto_youtube_playlists_desc">Hiển thị các danh sách phát được đề xuất của YouTube Music trong phần danh sách phát khi duyệt bằng Android Auto</string>
+    <string name="android_auto_youtube_playlists_desc">Show online catalog playlists in Android Auto</string>
     <string name="android_auto_target_playlist">Thêm điểm đến nhanh</string>
     <string name="android_auto_target_playlist_desc">Chọn danh sách phát để lưu các bài hát khi sử dụng nút thêm nhanh trong Android Auto</string>
     <string name="added_to_playlist">Đã thêm vào danh sách phát</string>
@@ -836,4 +835,32 @@
     <string name="show_most_stats_playlists_desc">Tạo và hiển thị danh sách phát phổ biến nhất trong mục Thống kê và Thư viện</string>
     <string name="pin">Ghim</string>
     <string name="unpin">Bỏ ghim</string>
+    <string name="product_ux_error_playback_generic">This song cannot be played right now.</string>
+    <string name="product_ux_error_playback_source_blocked">This version cannot be played from this source right now.</string>
+    <string name="product_ux_error_playback_stream_expired">Playback expired. Try playing again.</string>
+    <string name="product_ux_error_playback_sign_in">Sign in is required to play this song.</string>
+    <string name="product_ux_error_playback_unavailable">This song is not available right now.</string>
+    <string name="product_ux_error_import_failed">This song could not be saved right now. Try another version or try again later.</string>
+    <string name="product_ux_error_library_unreachable">Your personal library cannot be reached right now. Check that your desktop app is open or try again.</string>
+    <string name="product_ux_error_search_unavailable">Search isn\\\'t available right now. Check your connection and try again.</string>
+    <string name="product_ux_search_empty">Nothing matched your search. Try different words or check spelling.</string>
+    <string name="product_ux_library_song_empty">Nothing here yet. Try a different filter or add music to your library.</string>
+    <string name="product_ux_library_album_empty">No albums here yet. Albums appear when you add music to your library.</string>
+    <string name="product_ux_library_artist_empty">No artists here yet. Artists appear when you add music to your library.</string>
+    <string name="product_ux_library_playlist_empty">No playlists here yet. Create one to organize your music.</string>
+    <string name="product_ux_library_offline_empty">No offline songs yet. Save songs for offline listening from the player menu.</string>
+    <string name="product_ux_error_playback_age_restricted">This app does not support playing age-restricted songs yet.</string>
+    <string name="product_ux_error_playback_code">Code: %1$s (%2$d)</string>
+    <string name="product_ux_view_technical_details">View technical details</string>
+    <string name="product_ux_view_sync_details">View sync details</string>
+    <string name="product_ux_hide_technical_details">Hide technical details</string>
+    <string name="product_ux_technical_details">Technical details</string>
+    <string name="product_ux_playlist_song_empty">No songs in this playlist yet. Add songs from search or your library.</string>
+    <string name="product_ux_online_catalog">Online catalog</string>
+    <string name="product_ux_refetch_metadata">Refresh song details from the online catalog</string>
+    <string name="product_ux_enable_stream_buffer">Keep songs ready while streaming</string>
+    <string name="product_ux_enable_stream_buffer_desc">Saves recent streams so playback resumes faster. This is not the same as saving offline.</string>
+    <string name="product_ux_video_mobile_roadmap">Video opens in your browser for now. In-app video is planned.</string>
+    <string name="song_cache">Streaming buffer</string>
+    <string name="image_cache">Artwork buffer</string>
 </resources>
