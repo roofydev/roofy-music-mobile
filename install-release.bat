@@ -8,7 +8,7 @@ set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 if not exist "%JAVA_HOME%\bin\jlink.exe" (
   echo ERROR: JDK not found at %JAVA_HOME%
-  echo Install Temurin 21 there or update JAVA_HOME in this script and gradle.properties.
+  echo Install Temurin 21 there or update JAVA_HOME in this script.
   exit /b 1
 )
 
