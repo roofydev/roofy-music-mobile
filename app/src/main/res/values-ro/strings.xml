@@ -24,7 +24,7 @@
     <string name="most_played_artists">Cei mai redați artiști</string>
     <string name="most_played_albums">Cele mai redate albume</string>
     <string name="search">Caută</string>
-    <string name="search_yt_music">Caută pe YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Caută în bibliotecă…</string>
     <string name="filter_library">Bibliotecă</string>
     <string name="filter_liked">Apreciate</string>
@@ -274,11 +274,10 @@
     <string name="backup_create_failed">Nu s-a putut creea backup-ul</string>
     <string name="restore_failed">Nu s-a putut restaura backup-ul</string>
     <string name="discord_integration">Integrare Discord</string>
-    <string name="discord_information">Roofy Music folosește biblioteca KizzyRPC pentru a-ți seta statusul contului tău de Discord. Acest lucru presupune folosirea conexiunii Discord Gateway, ceea ce ar putea fi considerată o încălcare a Termenilor serviciului Discord. Însă, nu există cazuri cunoscute de conturi de utilizator care au fost suspendate din acest motiv. Folosește pe propriul tău risc.\n\nRoofy Music îți va extrage doar token-ul. Orice altceva este stocat local.</string>
     <string name="dismiss">Închide</string>
     <string name="options">Opțiuni</string>
     <string name="preview">Previzualizează</string>
-    <string name="enable_discord_rpc">Activează Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">Despre</string>
     <string name="app_version">Versiunea aplicației</string>
     <string name="new_version_available">Versiune nouă disponibilă</string>

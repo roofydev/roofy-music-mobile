@@ -27,7 +27,7 @@
     <string name="most_played_artists">ศิลปินที่ฟังมากที่สุด</string>
     <string name="most_played_albums">อัลบั้มที่ฟังมากที่สุด</string>
     <string name="search">ค้นหา</string>
-    <string name="search_yt_music">ค้นหาใน YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">ค้นหาในคลังเพลง…</string>
     <string name="filter_library">คลังเพลง</string>
     <string name="filter_liked">ถูกใจ</string>
@@ -260,11 +260,10 @@
     <string name="backup_create_failed">ไม่สามารถสร้างไฟล์สำรองข้อมูลได้</string>
     <string name="restore_failed">ไม่สามารถกู้คืนข้อมูลสำรองได้</string>
     <string name="discord_integration">การเชื่อมต่อกับ Discord</string>
-    <string name="discord_information">Roofy Music ใช้ไลบรารี KizzyRPC เพื่อแสดงสถานะบนบัญชี Discord ของคุณ ซึ่งต้องใช้การเชื่อมต่อผ่าน Discord Gateway และอาจถือว่าเป็นการละเมิดข้อกำหนดการใช้งาน (ToS) ของ Discord อย่างไรก็ตาม ยังไม่มีรายงานว่ามีบัญชีผู้ใช้ถูกระงับจากสาเหตุนี้ โปรดใช้งานด้วยความระมัดระวังและยอมรับความเสี่ยงเอง\n\nRoofy Music จะดึงเฉพาะโทเคนของคุณเท่านั้น และข้อมูลอื่น ๆ ทั้งหมดจะถูกจัดเก็บไว้ในอุปกรณ์ของคุณ</string>
     <string name="dismiss">ปิด</string>
     <string name="options">ตัวเลือก</string>
     <string name="preview">ตัวอย่าง</string>
-    <string name="enable_discord_rpc">เปิดใช้งาน Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">เกี่ยวกับ</string>
     <string name="app_version">เวอร์ชันแอป</string>
     <string name="new_version_available">มีเวอร์ชันใหม่พร้อมใช้งาน</string>

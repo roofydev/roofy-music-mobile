@@ -42,7 +42,7 @@
     <string name="search_library">Търсене в библиотека…</string>
     <string name="filter_artists">Изпълнители</string>
     <string name="most_played_artists">Най-пускани изпълнители</string>
-    <string name="search_yt_music">Търсене в YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="filter_liked">Харесвани</string>
     <string name="filter_downloaded">Изтеглени</string>
     <string name="filter_all">Всички</string>
@@ -176,7 +176,6 @@
     <string name="repeat_mode_off">Режим на повторение е изключен</string>
     <string name="repeat_mode_one">Повтори текущата песен</string>
     <string name="repeat_mode_all">Повтори опашката</string>
-    <string name="discord_information">Roofy Music използва библиотеката KizzyRPC, за да зададе състоянието на профила ви в Discord. Това включва използването на връзката Discord Gateway, което може да се счита за нарушение на TOS на Discord. Въпреки това няма известни случаи на спиране на потребителски профили поради тази причина. Използвайте на свой собствен риск. \n \nRoofy Music ще извлече само вашия токен, а всичко останало се съхранява локално.</string>
     <string name="action_backup">Архивиране</string>
     <string name="translation_models">Модели за превод</string>
     <string name="clear_image_cache">Изчисти кеша на изображение</string>
@@ -274,7 +273,7 @@
     <string name="options">Опции</string>
     <string name="preview">Преглед</string>
     <string name="action_logout">Изход</string>
-    <string name="enable_discord_rpc">Активирай Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="new_version_available">Налична е нова версия</string>
     <string name="use_login_for_browse">Използвай вход за разглеждане на съдържание</string>
     <string name="use_login_for_browse_desc">Това може да повлияе какво съдържание виждате и например показва само премиум албуми, ако сте влезли с Премиум профил</string>

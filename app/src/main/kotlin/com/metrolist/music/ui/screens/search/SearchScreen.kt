@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -67,13 +68,10 @@ import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.PauseSearchHistoryKey
-import com.metrolist.music.constants.SearchSource
-import com.metrolist.music.constants.SearchSourceKey
 import com.metrolist.music.db.entities.SearchHistory
 import com.metrolist.music.playback.queues.YouTubeQueue
 import com.metrolist.music.ui.theme.RetroIconButton
 import com.metrolist.music.ui.theme.RetroTokens
-import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -132,7 +130,6 @@ fun SearchScreen(
         }
     }
 
-    var searchSource by rememberEnumPreference(SearchSourceKey, SearchSource.ONLINE)
     var query by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue())
     }
@@ -217,13 +214,7 @@ fun SearchScreen(
                             decorationBox = { innerTextField ->
                                 if (query.text.isEmpty()) {
                                     Text(
-                                        text =
-                                            stringResource(
-                                                when (searchSource) {
-                                                    SearchSource.LOCAL -> R.string.search_library
-                                                    SearchSource.ONLINE -> R.string.search_yt_music
-                                                },
-                                            ),
+                                        text = stringResource(R.string.search_unified_hint),
                                         style =
                                             TextStyle(
                                                 color = RetroTokens.TextDim,
@@ -261,16 +252,21 @@ fun SearchScreen(
                                 }
                             }
 
-                            SourceToggleButton(
-                                text = "[ LOCAL ]",
-                                selected = searchSource == SearchSource.LOCAL,
-                                onClick = { searchSource = SearchSource.LOCAL },
-                            )
-                            SourceToggleButton(
-                                text = "[ ONLINE ]",
-                                selected = searchSource == SearchSource.ONLINE,
-                                onClick = { searchSource = SearchSource.ONLINE },
-                            )
+                            RetroIconButton(
+                                onClick = {
+                                    navController.navigate("recognition") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                modifier = Modifier.size(32.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mic),
+                                    contentDescription = stringResource(R.string.identify_song),
+                                    tint = RetroTokens.TextSoft,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
                         }
                     }
                 },
@@ -309,17 +305,23 @@ fun SearchScreen(
                         .padding(bottom = bottomPadding)
                         .fillMaxSize(),
             ) {
-                when (searchSource) {
-                    SearchSource.LOCAL -> {
-                        LocalSearchScreen(
-                            query = query.text,
-                            navController = navController,
-                            onDismiss = { navController.navigateUp() },
-                            pureBlack = pureBlack,
-                        )
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (query.text.isNotBlank()) {
+                        Box(modifier = Modifier.weight(0.42f)) {
+                            LocalSearchScreen(
+                                query = query.text,
+                                navController = navController,
+                                onDismiss = { navController.navigateUp() },
+                                pureBlack = pureBlack,
+                            )
+                        }
                     }
-
-                    SearchSource.ONLINE -> {
+                    Box(
+                        modifier =
+                            Modifier.weight(
+                                if (query.text.isNotBlank()) 0.58f else 1f,
+                            ),
+                    ) {
                         OnlineSearchScreen(
                             query = query.text,
                             onQueryChange = { query = it },
@@ -365,31 +367,5 @@ fun SearchScreen(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
-    }
-}
-
-@Composable
-private fun SourceToggleButton(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .background(if (selected) RetroTokens.Panel2 else RetroTokens.Panel)
-            .border(
-                RetroTokens.BorderWidth,
-                if (selected) RetroTokens.BorderBright else RetroTokens.Border,
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) RetroTokens.TextHot else RetroTokens.TextSoft,
-        )
     }
 }

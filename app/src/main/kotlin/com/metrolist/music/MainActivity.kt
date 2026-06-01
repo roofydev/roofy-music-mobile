@@ -18,6 +18,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.view.View
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
@@ -133,6 +134,8 @@ import com.metrolist.music.constants.CheckForUpdatesKey
 import com.metrolist.music.constants.DarkModeKey
 import com.metrolist.music.constants.DefaultOpenTabKey
 import com.metrolist.music.constants.DisableScreenshotKey
+import com.metrolist.music.constants.DesktopImportEndpointUrlKey
+import com.metrolist.music.constants.DesktopImportTokenKey
 import com.metrolist.music.constants.DynamicThemeKey
 import com.metrolist.music.constants.EnableHighRefreshRateKey
 import com.metrolist.music.constants.ExperimentalLyricsKey
@@ -146,6 +149,10 @@ import com.metrolist.music.constants.NavigationBarAnimationSpec
 import com.metrolist.music.constants.NavigationBarHeight
 import com.metrolist.music.constants.PauseListenHistoryKey
 import com.metrolist.music.constants.PauseSearchHistoryKey
+import com.metrolist.music.constants.PersonalLibraryEnabledKey
+import com.metrolist.music.constants.PersonalLibraryPasswordKey
+import com.metrolist.music.constants.PersonalLibraryServerUrlKey
+import com.metrolist.music.constants.PersonalLibraryUsernameKey
 import com.metrolist.music.constants.PreferredLyricsProvider
 import com.metrolist.music.constants.PreferredLyricsProviderKey
 import com.metrolist.music.constants.PureBlackKey
@@ -700,14 +707,7 @@ class MainActivity : ComponentActivity() {
                 val (previousTab, setPreviousTab) = rememberSaveable { mutableStateOf("home") }
 
                 val (listenTogetherInTopBar) = rememberPreference(ListenTogetherInTopBarKey, defaultValue = true)
-                val navigationItems =
-                    remember(listenTogetherInTopBar) {
-                        if (listenTogetherInTopBar) {
-                            Screens.MainScreens.filter { it != Screens.ListenTogether }
-                        } else {
-                            Screens.MainScreens
-                        }
-                    }
+                val navigationItems = remember { Screens.MainScreens }
                 val routeIndexMap = remember(navigationItems) {
                     navigationItems.mapIndexed { i, s -> s.route to i }.toMap()
                 }
@@ -1057,6 +1057,20 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 Text("|", color = RetroTokens.BorderMuted)
                                             }
+                                            IconButton(
+                                                onClick = {
+                                                    navController.navigate("settings") {
+                                                        launchSingleTop = true
+                                                    }
+                                                },
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.settings),
+                                                    contentDescription = stringResource(R.string.settings),
+                                                    tint = RetroTokens.TextSoft,
+                                                )
+                                            }
+                                            Text("|", color = RetroTokens.BorderMuted)
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {
@@ -1119,10 +1133,14 @@ class MainActivity : ComponentActivity() {
                                     currentBackStackEntry,
                                 ) {
                                     { screen: Screens, isSelected: Boolean ->
-                                        if (playerBottomSheetState.isExpanded) {
+                                        if (screen.opensPlayer) {
+                                            playerBottomSheetState.expandSoft()
+                                        } else if (playerBottomSheetState.isExpanded) {
                                             playerBottomSheetState.collapseSoft()
                                         }
-                                        if (isSelected) {
+                                        if (screen.opensPlayer) {
+                                            // Player tab only expands the sheet; no route change.
+                                        } else if (isSelected) {
                                             val targetEntry =
                                                 try {
                                                     val route = navController.currentBackStackEntry?.destination?.route
@@ -1264,22 +1282,29 @@ class MainActivity : ComponentActivity() {
                             val onRailItemClick: (Screens, Boolean) -> Unit =
                                 remember(navController, coroutineScope, topAppBarScrollBehavior, playerBottomSheetState) {
                                     { screen: Screens, isSelected: Boolean ->
-                                        if (playerBottomSheetState.isExpanded) {
-                                            playerBottomSheetState.collapseSoft()
-                                        }
-
-                                        if (isSelected) {
-                                            navController.currentBackStackEntry?.savedStateHandle?.set("scrollToTop", true)
-                                            coroutineScope.launch {
-                                                topAppBarScrollBehavior.state.resetHeightOffset()
-                                            }
+                                        if (screen.opensPlayer) {
+                                            playerBottomSheetState.expandSoft()
                                         } else {
-                                            navController.navigate(screen.route) {
-                                                popUpTo(navController.graph.startDestinationId) {
-                                                    saveState = true
+                                            if (playerBottomSheetState.isExpanded) {
+                                                playerBottomSheetState.collapseSoft()
+                                            }
+
+                                            if (isSelected) {
+                                                navController.currentBackStackEntry?.savedStateHandle?.set(
+                                                    "scrollToTop",
+                                                    true,
+                                                )
+                                                coroutineScope.launch {
+                                                    topAppBarScrollBehavior.state.resetHeightOffset()
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
+                                            } else {
+                                                navController.navigate(screen.route) {
+                                                    popUpTo(navController.graph.startDestinationId) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
                                         }
                                     }
@@ -1511,6 +1536,10 @@ class MainActivity : ComponentActivity() {
         intent.removeExtra(Intent.EXTRA_TEXT)
         val coroutineScope = lifecycle.coroutineScope
 
+        if (handleDevicePairing(uri, navController)) return
+        if (handlePersonalLibraryPairing(uri, navController)) return
+        if (handleDesktopImportPairing(uri, navController)) return
+
         val listenCode =
             uri.getQueryParameter("code")
                 ?: uri.getQueryParameter("room")
@@ -1609,6 +1638,102 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun handleDevicePairing(
+        uri: android.net.Uri,
+        navController: NavHostController,
+    ): Boolean {
+        if (!com.metrolist.music.pairing.RoofyPairingLinks.isDevicePairLink(uri)) return false
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val ok =
+                com.metrolist.music.pairing.PhoneLinkSetup.applyPairingUri(
+                    context = this@MainActivity,
+                    dataStore = dataStore,
+                    uri = uri,
+                )
+            if (!ok) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, R.string.phone_link_pairing_invalid, Toast.LENGTH_LONG).show()
+                    navController.navigate("link_computer") {
+                        launchSingleTop = true
+                    }
+                }
+                return@launch
+            }
+            withContext(Dispatchers.Main) {
+                navController.navigate("link_computer/success") {
+                    launchSingleTop = true
+                }
+            }
+        }
+
+        return true
+    }
+
+    private fun handlePersonalLibraryPairing(
+        uri: android.net.Uri,
+        navController: NavHostController,
+    ): Boolean {
+        if (!com.metrolist.music.pairing.RoofyPairingLinks.isSubsonicPairLink(uri)) return false
+
+        val params = com.metrolist.music.pairing.RoofyPairingLinks.parseSubsonicPair(uri)
+        if (params == null) {
+            Toast.makeText(this, R.string.personal_library_pairing_invalid, Toast.LENGTH_LONG).show()
+            navController.navigate("settings/integrations/personal_library") {
+                launchSingleTop = true
+            }
+            return true
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            dataStore.edit { settings ->
+                settings[PersonalLibraryEnabledKey] = true
+                settings[PersonalLibraryServerUrlKey] = params.serverUrl
+                settings[PersonalLibraryUsernameKey] = params.username
+                settings[PersonalLibraryPasswordKey] = params.password
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, R.string.personal_library_paired, Toast.LENGTH_SHORT).show()
+                navController.navigate("settings/integrations/personal_library") {
+                    launchSingleTop = true
+                }
+            }
+        }
+
+        return true
+    }
+
+    private fun handleDesktopImportPairing(
+        uri: android.net.Uri,
+        navController: NavHostController,
+    ): Boolean {
+        if (!com.metrolist.music.pairing.RoofyPairingLinks.isImportPairLink(uri)) return false
+
+        val params = com.metrolist.music.pairing.RoofyPairingLinks.parseImportPair(uri)
+        if (params == null) {
+            Toast.makeText(this, R.string.desktop_import_pairing_invalid, Toast.LENGTH_LONG).show()
+            navController.navigate("settings/integrations/desktop_import") {
+                launchSingleTop = true
+            }
+            return true
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            dataStore.edit { settings ->
+                settings[DesktopImportEndpointUrlKey] = params.endpointUrl
+                settings[DesktopImportTokenKey] = params.token
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MainActivity, R.string.desktop_import_paired, Toast.LENGTH_SHORT).show()
+                navController.navigate("settings/integrations/desktop_import") {
+                    launchSingleTop = true
+                }
+            }
+        }
+
+        return true
     }
 
     @SuppressLint("ObsoleteSdkInt")

@@ -8,6 +8,7 @@ package com.metrolist.music.ui.screens.recognition
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -69,6 +70,10 @@ import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.R
+import com.metrolist.music.constants.DesktopImportEndpointUrlKey
+import com.metrolist.music.constants.DesktopImportTokenKey
+import com.metrolist.music.desktopimport.RecognitionDesktopImport
+import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.db.entities.RecognitionHistory
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.theme.RetroArtwork
@@ -92,6 +97,12 @@ fun RecognitionScreen(
     val context = LocalContext.current
     val database = LocalDatabase.current
     val coroutineScope = rememberCoroutineScope()
+    val desktopImportEndpointUrl by rememberPreference(DesktopImportEndpointUrlKey, "")
+    val desktopImportToken by rememberPreference(DesktopImportTokenKey, "")
+    val desktopImportQueuedText = stringResource(R.string.desktop_import_queued)
+    val desktopImportFailedText = stringResource(R.string.desktop_import_failed)
+    val desktopImportNotConfiguredText = stringResource(R.string.desktop_import_not_configured)
+    val addToMyLibraryText = stringResource(R.string.add_to_my_library)
 
     LaunchedEffect(Unit) {
         if (com.metrolist.music.recognition.MusicRecognitionService.recognitionStatus.value
@@ -251,6 +262,41 @@ fun RecognitionScreen(
                                 val searchQuery = "${result.title} ${result.artist}"
                                 navController.navigate("search/${java.net.URLEncoder.encode(searchQuery, "UTF-8")}")
                             },
+                            onAddToLibrary = { result ->
+                                if (
+                                    desktopImportEndpointUrl.isBlank() ||
+                                    desktopImportToken.isBlank()
+                                ) {
+                                    Toast
+                                        .makeText(context, desktopImportNotConfiguredText, Toast.LENGTH_SHORT)
+                                        .show()
+                                    navController.navigate("settings/integrations/desktop_import")
+                                } else {
+                                    coroutineScope.launch {
+                                        RecognitionDesktopImport
+                                            .queueRecognizedTrack(
+                                                endpointUrl = desktopImportEndpointUrl,
+                                                token = desktopImportToken,
+                                                result = result,
+                                            )
+                                            .onSuccess {
+                                                Toast
+                                                    .makeText(context, desktopImportQueuedText, Toast.LENGTH_SHORT)
+                                                    .show()
+                                            }
+                                            .onFailure {
+                                                Toast
+                                                    .makeText(
+                                                        context,
+                                                        "$desktopImportFailedText: ${it.message}",
+                                                        Toast.LENGTH_LONG,
+                                                    )
+                                                    .show()
+                                            }
+                                    }
+                                }
+                            },
+                            addToLibraryLabel = addToMyLibraryText,
                             onTryAgain = {
                                 startRecognition()
                             },
@@ -430,6 +476,8 @@ private fun ProcessingState() {
 private fun SuccessState(
     result: RecognitionResult,
     onPlayOnApp: (RecognitionResult) -> Unit,
+    onAddToLibrary: (RecognitionResult) -> Unit,
+    addToLibraryLabel: String,
     onTryAgain: () -> Unit,
     onClose: () -> Unit,
     onSaveToHistory: (RecognitionResult) -> Unit,
@@ -504,6 +552,24 @@ private fun SuccessState(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("PLAY", style = MaterialTheme.typography.labelMedium, color = RetroTokens.Text)
+            }
+
+            RetroButton(
+                onClick = { onAddToLibrary(result) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.upload),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = RetroTokens.TextSoft,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    addToLibraryLabel.uppercase(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = RetroTokens.Text,
+                )
             }
 
             RetroButton(

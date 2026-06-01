@@ -33,6 +33,8 @@ import com.metrolist.music.ui.screens.artist.ArtistSongsScreen
 import com.metrolist.music.ui.screens.equalizer.EqScreen
 import com.metrolist.music.ui.screens.equalizer.wizard.WizardScreen
 import com.metrolist.music.ui.screens.library.LibraryScreen
+import com.metrolist.music.ui.screens.link.LinkComputerScreen
+import com.metrolist.music.ui.screens.link.LinkComputerSuccessScreen
 import com.metrolist.music.ui.screens.playlist.AutoPlaylistScreen
 import com.metrolist.music.ui.screens.playlist.CachePlaylistScreen
 import com.metrolist.music.ui.screens.playlist.LocalPlaylistScreen
@@ -43,6 +45,7 @@ import com.metrolist.music.ui.screens.recognition.RecognitionHistoryScreen
 import com.metrolist.music.ui.screens.recognition.RecognitionScreen
 import com.metrolist.music.ui.screens.search.OnlineSearchResult
 import com.metrolist.music.ui.screens.search.SearchScreen
+import com.metrolist.music.ui.screens.video.VideoWatchScreen
 import com.metrolist.music.ui.screens.settings.AboutScreen
 import com.metrolist.music.ui.screens.settings.AiSettings
 import com.metrolist.music.ui.screens.settings.AndroidAutoSettings
@@ -59,9 +62,11 @@ import com.metrolist.music.ui.screens.settings.StorageSettings
 import com.metrolist.music.ui.screens.settings.ThemeScreen
 import com.metrolist.music.ui.screens.settings.UpdaterScreen
 import com.metrolist.music.ui.screens.settings.integrations.DiscordSettings
+import com.metrolist.music.ui.screens.settings.integrations.DesktopImportSettings
 import com.metrolist.music.ui.screens.settings.integrations.IntegrationScreen
 import com.metrolist.music.ui.screens.settings.integrations.LastFMSettings
 import com.metrolist.music.ui.screens.settings.integrations.ListenTogetherSettings
+import com.metrolist.music.ui.screens.settings.integrations.PersonalLibrarySettings
 
 import com.metrolist.music.ui.screens.wrapped.WrappedScreen
 import com.metrolist.music.utils.rememberEnumPreference
@@ -400,6 +405,38 @@ fun NavGraphBuilder.navigationBuilder(
         LastFMSettings(navController)
     }
 
+    composable(
+        route = "link_computer?scan={scan}",
+        arguments =
+            listOf(
+                navArgument("scan") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                },
+            ),
+    ) { backStackEntry ->
+        LinkComputerScreen(
+            navController = navController,
+            autoScan = backStackEntry.arguments?.getBoolean("scan") == true,
+        )
+    }
+
+    composable("link_computer/success") {
+        LinkComputerSuccessScreen(navController)
+    }
+
+    composable("settings/integrations/personal_library") {
+        PersonalLibrarySettings(navController)
+    }
+
+    composable("settings/integrations/desktop_import") {
+        DesktopImportSettings(navController)
+    }
+
+    composable("settings/integrations/my_computer") {
+        LinkComputerScreen(navController)
+    }
+
     composable(route = "settings/integrations/listen_together") {
         ListenTogetherSettings(navController)
     }
@@ -450,6 +487,21 @@ fun NavGraphBuilder.navigationBuilder(
     composable("recognition_history") {
         RecognitionHistoryScreen(navController)
     }
+
+    composable(
+        route = "video_watch?url={url}",
+        arguments =
+            listOf(
+                navArgument("url") {
+                    type = NavType.StringType
+                },
+            ),
+    ) {
+        val encodedUrl = it.arguments?.getString("url").orEmpty()
+        val videoUrl = android.net.Uri.decode(encodedUrl)
+        VideoWatchScreen(navController, videoUrl)
+    }
+
     composable("settings/android_auto") {
         AndroidAutoSettings(navController, scrollBehavior)
     }

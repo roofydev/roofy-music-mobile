@@ -2,7 +2,7 @@
 <resources>
     <string name="back_button_desc">Назад</string>
     <string name="please_wait">Пожалуйста, подождите</string>
-    <string name="remove_from_cache">Удалить из кэша</string>
+    <string name="remove_from_cache">Remove from streaming buffer</string>
     <string name="select">Выбрать всё</string>
     <string name="link_copied">Ссылка скопирована в буфер обмена</string>
     <string name="lyrics">Текст</string>
@@ -30,7 +30,7 @@
         <item quantity="many">%d секунд</item>
         <item quantity="other">%d секунд</item>
     </plurals>
-    <string name="allows_for_sync_witch_youtube">ПРИМЕЧАНИЕ: Эта опция включает синхронизацию с YouTube Music, и её НЕЛЬЗЯ изменить позже</string>
+    <string name="allows_for_sync_witch_youtube">Note: This enables sync with the online catalog and cannot be changed later.</string>
     <string name="player_background_blur">Размытие</string>
     <string name="slim_navbar">Тонкая панель навигации</string>
     <string name="dislikes">Дизлайки</string>
@@ -45,7 +45,7 @@
     <string name="liked">Понравившиеся</string>
     <string name="offline">Скачанные</string>
     <string name="my_top">Топ</string>
-    <string name="cached_playlist">Кэшированные</string>
+    <string name="cached_playlist">Offline buffer</string>
     <string name="sync_playlist">Синхронизировать плейлист</string>
     <string name="sync_disabled">Синхронизация выключена</string>
     <string name="cancel">Отмена</string>
@@ -82,7 +82,7 @@
     <string name="show_liked_playlist">Показывать плейлист «Понравившиеся»</string>
     <string name="show_downloaded_playlist">Показывать плейлист «Скачанные»</string>
     <string name="show_top_playlist">Показывать плейлист «Топ»</string>
-    <string name="show_cached_playlist">Показывать плейлист «Кэшированные»</string>
+    <string name="show_cached_playlist">Show streaming buffer playlist (advanced)</string>
     <string name="advanced_login">Вход по токену</string>
     <string name="yt_sync">Автосинхронизация с аккаунтом</string>
     <string name="more_content">Доп. контент</string>
@@ -95,7 +95,7 @@
     <string name="playlist_add_local_to_synced_note">ПРИМЕЧАНИЕ: Добавление локальных треков в синхронизированные или удаленные плейлисты не поддерживается. Любые другие комбинации допустимы</string>
     <string name="auto_download_on_like">Автоскачивание при отметке «Нравится»</string>
     <string name="auto_download_on_like_desc">Автоматически скачивать треки, отмечаемые как понравившиеся</string>
-    <string name="clear_song_cache_dialog">Вы уверены, что хотите очистить все закэшированные треки?</string>
+    <string name="clear_song_cache_dialog">Clear all streaming buffer songs?</string>
     <string name="clear_downloads_dialog">Вы уверены, что хотите очистить все скачанные?</string>
     <string name="not_logged_in_youtube">Вы не вошли в YouTube</string>
     <string name="default_links">Открыть поддерживаемые ссылки</string>
@@ -114,7 +114,7 @@
     <string name="disable">Отключить</string>
     <string name="subscribe">Подписаться</string>
     <string name="subscribed">Вы подписаны</string>
-    <string name="clear_image_cache_dialog">Вы уверены, что хотите очистить все закэшированные изображения?</string>
+    <string name="clear_image_cache_dialog">Clear all stored artwork?</string>
     <string name="swipe_sensitivity">Чувствительность свайпа мини-плеера</string>
     <string name="new_mini_player_design">Новый дизайн мини‑плеера</string>
     <string name="now_playing">Сейчас играет</string>
@@ -152,7 +152,7 @@
     <string name="line_by_line_dialog_desc">Это экспериментальная функция и может работать нестабильно.\n\nПо умолчанию язык определяется для всей песни, но с этой опцией он будет определяться построчно. Это обеспечивает поддержку многоязычных песен, но язык может определяться неточно. Например, строка на украинском без характерных символов может быть распознана как русский.\n\nЕсли у вас нет проблем, рекомендуется оставить эту опцию выключенной</string>
     <string name="romanize_current_track">Романизировать текущий трек</string>
     <string name="edit_playlist_cover">Редактировать обложку плейлиста</string>
-    <string name="edit_playlist_cover_note">ПРИМЕЧАНИЕ: Для изменения обложки плейлиста аккаунт должен быть привязан к номеру телефона и подтверждён в YouTube Music</string>
+    <string name="edit_playlist_cover_note">Note: Your online catalog account must be verified with a phone number to change playlist artwork.</string>
     <string name="edit_playlist_cover_note_wait">После выбора изображения подождите немного, пока новая обложка появится в вашем плейлисте</string>
     <string name="remove_custom_image">Удалить собственное изображение</string>
     <string name="choose_from_library">Выбрать из библиотеки</string>
@@ -176,10 +176,10 @@
     <string name="lastfm_integration">Интеграция с Last.fm</string>
     <string name="enable_scrobbling">Включить скробблинг</string>
     <string name="lastfm_now_playing">Отправлять статус «Сейчас играет»</string>
-    <string name="scrobbling_configuration">Настройки скробблинга</string>
-    <string name="scrobble_min_track_duration">Скробблить треки длиннее (в секундах)</string>
-    <string name="scrobble_delay_percent">Задержка скробблинга (в процентах)</string>
-    <string name="scrobble_delay_minutes">Задержка скробблинга (в минутах)</string>
+    <string name="scrobbling_configuration">Listening history settings</string>
+    <string name="scrobble_min_track_duration">Only log songs longer than (seconds)</string>
+    <string name="scrobble_delay_percent">Log to listening history after this much of the song (%)</string>
+    <string name="scrobble_delay_minutes">Wait before logging a play (minutes)</string>
     <string name="swipe_song_to_remove">Свайп - удалить трек из плейлиста</string>
     <string name="last_fm_send_likes">Синхронизировать отметки «Нравится»</string>
     <string name="last_fm_send_likes_description">Добавлять или убирать отметку «Любимое» на Last.fm, когда ставится или снимается отметка «Нравится» в Roofy Music</string>
@@ -197,7 +197,7 @@
     <string name="add_to_library_desc">Сохранить в вашу библиотеку</string>
     <string name="download_desc">Скачать для офлайн-прослушивания</string>
     <string name="add_to_playlist_desc">Добавить в плейлист</string>
-    <string name="refetch_desc">Обновить метаданные из YouTube Music</string>
+    <string name="refetch_desc">Refresh song details from the online catalog</string>
     <string name="share_desc">Поделиться ссылкой на этот элемент</string>
     <string name="delete_desc">Безвозвратно удалить этот элемент</string>
     <string name="advanced_desc">Настроить темп и высоту тона трека</string>
@@ -206,7 +206,7 @@
     <string name="mini_player">Мини-плеер</string>
     <string name="pure_black_mini_player">Чисто чёрный мини-плеер</string>
     <string name="cache_size_warning_title">Внимание!</string>
-    <string name="cache_size_warning_message">Выбранный вами лимит (%1$s) меньше текущего объёма используемого кэша. При продолжении часть %2$s может быть удалена. Продолжить?</string>
+    <string name="cache_size_warning_message">The limit you chose (%1$s) is smaller than what the app is using. Some stored %2$s may be removed. Continue anyway?</string>
     <string name="cache_size_warning_confirm">Продолжить</string>
     <string name="tertiary_color_style">Третичный цвет</string>
     <string name="logging_in">Выполняется вход…</string>
@@ -215,7 +215,7 @@
     <string name="download_in_progress_desc">Идёт скачивание</string>
     <string name="share_playlist_desc">Поделиться этим плейлистом с другими</string>
     <string name="delete_playlist_desc">Удалить этот плейлист навсегда</string>
-    <string name="sync_playlist_desc">Синхронизировать этот плейлист с YouTube Music</string>
+    <string name="sync_playlist_desc">Sync this playlist with the online catalog</string>
     <string name="enable_better_lyrics">Включить Better Lyrics</string>
     <string name="enable_better_lyrics_desc">Синхронизация текста по слогам для любой песни, идеально для караоке</string>
     <string name="lyrics_animation_style">Стиль анимации текста</string>
@@ -543,7 +543,6 @@
     <string name="discord_button_1">Кнопка 1</string>
     <string name="discord_button_2">Кнопка 2</string>
     <string name="login_successful">Вход выполнен успешно!</string>
-    <string name="discord_information_warning">Эта функция использует библиотеку KizzyRPC для обновления вашего статуса Rich Presence. Хотя о блокировках аккаунтов за подобное использование не сообщалось, этот метод официально не поддерживается Discord и может считаться нарушением Условий использования. Ваш токен обрабатывается локально и никогда не отправляется на сторонние серверы. Используйте на своё усмотрение!</string>
     <string name="discord_activity_type">Тип активности</string>
     <string name="discord_watching_roofy_music">Смотрит Roofy Music</string>
     <string name="discord_competing_roofy_music">Соревнуется в Roofy Music</string>
@@ -561,7 +560,7 @@
     <string name="density_restart_message">Изменение плотности интерфейса вступит в силу после перезапуска приложения. Перезапустить сейчас?</string>
     <string name="enable_lrclib_desc">База синхронизированных текстов песен, поддерживаемая сообществом</string>
     <string name="enable_kugou_desc">Загружает тексты песен из KuGou, популярной китайской музыкальной платформы</string>
-    <string name="youtube_music_lyrics_note">ПРИМЕЧАНИЕ: Тексты из YouTube Music будут показываться автоматически, если нет других источников. Обычно они не синхронизированы</string>
+    <string name="youtube_music_lyrics_note">Note: Online catalog lyrics may appear when no other source is available. They are often out of sync with the song.</string>
     <string name="enable_lyricsplus">Включить LyricsPlus</string>
     <string name="enable_lyricsplus_desc">Синхронизированные тексты из нескольких источников</string>
     <string name="lyrics_provider_selection">Выбор поставщиков</string>
@@ -723,8 +722,8 @@
     <string name="ai_provider_mistral_help">Откройте https://console.mistral.ai/api-keys</string>
     <string name="weekly_most_playlist_name">Самые прослушиваемые за неделю</string>
     <string name="monthly_most_playlist_name">Самые прослушиваемые за месяц</string>
-    <string name="enable_song_cache">Включить кэширование аудио</string>
-    <string name="enable_song_cache_desc">Автоматически кэшировать аудио для более быстрого последующего воспроизведения</string>
+    <string name="enable_song_cache">Buffer streams while playing</string>
+    <string name="enable_song_cache_desc">Keeps a temporary copy for smoother replay. Saved offline music is separate.</string>
     <string name="sleep_timer_stop_after_current_song_title">Остановить в конце текущего трека</string>
     <string name="sleep_timer_stop_after_current_song_description">Ожидает окончания текущего трека перед остановкой</string>
     <string name="sleep_timer_fade_out_title">Плавное затухание</string>
@@ -789,7 +788,7 @@
     <string name="android_auto_visible_sections">Видимые разделы</string>
     <string name="android_auto_reorder_hint">Нажмите на раздел, чтобы включить или отключить его.\nУдерживайте значок перетаскивания, чтобы изменить порядок. Первый раздел будет отображаться по умолчанию</string>
     <string name="android_auto_youtube_playlists">Показывать предложенные плейлисты YouTube</string>
-    <string name="android_auto_youtube_playlists_desc">Показывать рекомендованные плейлисты YouTube Music в разделе плейлистов при просмотре через Android Auto</string>
+    <string name="android_auto_youtube_playlists_desc">Show online catalog playlists in Android Auto</string>
     <string name="android_auto_target_playlist">Плейлист для быстрого добавления</string>
     <string name="android_auto_target_playlist_desc">Выберите плейлист, в который будут сохраняться треки при нажатии кнопки быстрого добавления в Android Auto</string>
     <string name="android_auto_target_playlist_auto">Не указано</string>
@@ -860,4 +859,54 @@
     <string name="widget_playlists">Плейлисты</string>
     <string name="widget_playlists_description">Ярлыки плейлистов с элементами управления мини-плеером</string>
     <string name="choose_something_below">Выберите что-нибудь ниже</string>
+    <string name="settings_section_general">Основные</string>
+    <string name="settings_section_playback">Воспроизведение</string>
+    <string name="settings_section_downloads_offline">Загрузки и офлайн</string>
+    <string name="settings_section_appearance">Оформление</string>
+    <string name="settings_section_discord">Статус Discord</string>
+    <string name="settings_section_advanced">Дополнительно</string>
+    <string name="personal_library_qr_first_title">Подключить компьютер</string>
+    <string name="desktop_import_qr_first_title">Связать сохранение на компьютере</string>
+    <string name="product_ux_error_search_unavailable">Поиск сейчас недоступен. Проверьте подключение и повторите попытку.</string>
+    <string name="product_ux_error_playback_generic">This song cannot be played right now.</string>
+    <string name="product_ux_error_playback_source_blocked">This version cannot be played from this source right now.</string>
+    <string name="product_ux_error_playback_stream_expired">Playback expired. Try playing again.</string>
+    <string name="product_ux_error_playback_sign_in">Sign in is required to play this song.</string>
+    <string name="product_ux_error_playback_unavailable">This song is not available right now.</string>
+    <string name="product_ux_error_import_failed">This song could not be saved right now. Try another version or try again later.</string>
+    <string name="product_ux_error_library_unreachable">Your personal library cannot be reached right now. Check that your desktop app is open or try again.</string>
+    <string name="product_ux_search_empty">Nothing matched your search. Try different words or check spelling.</string>
+    <string name="product_ux_library_song_empty">Nothing here yet. Try a different filter or add music to your library.</string>
+    <string name="product_ux_library_album_empty">No albums here yet. Albums appear when you add music to your library.</string>
+    <string name="product_ux_library_artist_empty">No artists here yet. Artists appear when you add music to your library.</string>
+    <string name="product_ux_library_playlist_empty">No playlists here yet. Create one to organize your music.</string>
+    <string name="product_ux_library_offline_empty">No offline songs yet. Save songs for offline listening from the player menu.</string>
+    <string name="product_ux_error_playback_age_restricted">This app does not support playing age-restricted songs yet.</string>
+    <string name="product_ux_error_playback_code">Code: %1$s (%2$d)</string>
+    <string name="product_ux_view_technical_details">View technical details</string>
+    <string name="product_ux_view_sync_details">View sync details</string>
+    <string name="product_ux_hide_technical_details">Hide technical details</string>
+    <string name="product_ux_technical_details">Technical details</string>
+    <string name="product_ux_playlist_song_empty">No songs in this playlist yet. Add songs from search or your library.</string>
+    <string name="product_ux_online_catalog">Online catalog</string>
+    <string name="product_ux_refetch_metadata">Refresh song details from the online catalog</string>
+    <string name="product_ux_enable_stream_buffer">Keep songs ready while streaming</string>
+    <string name="product_ux_enable_stream_buffer_desc">Saves recent streams so playback resumes faster. This is not the same as saving offline.</string>
+    <string name="product_ux_video_mobile_roadmap">Video opens inside Roofy for now. A dedicated player view is planned.</string>
+    <string name="product_ux_a11y_replay">Play again</string>
+    <string name="product_ux_a11y_fullscreen">Fullscreen</string>
+    <string name="product_ux_queue_empty">Nothing in the queue. Play a song or add tracks from your library.</string>
+    <string name="product_ux_stats_empty_title">No listening stats yet</string>
+    <string name="product_ux_stats_empty_desc">Stats appear after you listen long enough for a track to count.</string>
+    <string name="product_ux_a11y_open_queue">Open queue</string>
+    <string name="product_ux_a11y_collapse_queue">Collapse queue</string>
+    <string name="product_ux_a11y_lock_queue">Lock queue editing</string>
+    <string name="product_ux_a11y_unlock_queue">Unlock queue editing</string>
+    <string name="product_ux_a11y_reorder">Reorder</string>
+    <string name="product_ux_a11y_close">Close</string>
+    <string name="product_ux_wrapped_no_data">Keep listening — your recap will show up here.</string>
+    <string name="open_video">Open video</string>
+    <string name="watch_video">Open video</string>
+    <string name="video_watch_title">Video</string>
+    <string name="video_watch_back">Back to player</string>
 </resources>

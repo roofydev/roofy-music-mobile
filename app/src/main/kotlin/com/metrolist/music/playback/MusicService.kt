@@ -71,9 +71,7 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder.DefaultShuffleOrder
-import androidx.media3.extractor.ExtractorsFactory
-import androidx.media3.extractor.mkv.MatroskaExtractor
-import androidx.media3.extractor.mp4.FragmentedMp4Extractor
+import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
@@ -183,6 +181,8 @@ import com.metrolist.music.playback.queues.YouTubeQueue
 import com.metrolist.music.playback.queues.YouTubePlaylistQueue
 import com.metrolist.music.playback.queues.filterExplicit
 import com.metrolist.music.playback.queues.filterVideoSongs
+import com.metrolist.music.subsonic.SubsonicClient
+import com.metrolist.music.subsonic.personalLibraryCredentials
 import com.metrolist.music.constants.LoudnessLevel
 import com.metrolist.music.constants.LoudnessLevelKey
 import com.metrolist.music.utils.CoilBitmapLoader
@@ -3274,6 +3274,20 @@ class MusicService :
                 Timber.tag("MusicService").i("BYPASSING CACHE for $mediaId due to quality change")
             }
 
+            SubsonicClient.localIdFromMediaId(mediaId)?.let { subsonicId ->
+                val credentials = personalLibraryCredentials()
+                if (!credentials.isConfigured) {
+                    throw PlaybackException(
+                        getString(R.string.personal_library_not_configured),
+                        null,
+                        PlaybackException.ERROR_CODE_REMOTE_ERROR,
+                    )
+                }
+
+                val streamUrl = SubsonicClient(credentials).streamUrl(subsonicId)
+                return@Factory dataSpec.withUri(streamUrl.toUri())
+            }
+
             Timber.tag("MusicService").i("FETCHING STREAM: $mediaId | quality=$audioQuality")
             val playbackData =
                 runBlocking(Dispatchers.IO) {
@@ -3365,12 +3379,7 @@ class MusicService :
     }
 
     private fun createMediaSourceFactory() =
-        DefaultMediaSourceFactory(
-            createDataSourceFactory(),
-            ExtractorsFactory {
-                arrayOf(MatroskaExtractor(), FragmentedMp4Extractor())
-            },
-        )
+        DefaultMediaSourceFactory(createDataSourceFactory(), DefaultExtractorsFactory())
 
     private fun createRenderersFactory(
         eqProcessor: CustomEqualizerAudioProcessor,

@@ -6,6 +6,12 @@ cd /d "%~dp0"
 set "JAVA_HOME=C:\roofy-music-projects\.tools\temurin21\jdk-21.0.11+10"
 set "PATH=%JAVA_HOME%\bin;%PATH%"
 
+if not exist "%JAVA_HOME%\bin\jlink.exe" (
+  echo ERROR: JDK not found at %JAVA_HOME%
+  echo Install Temurin 21 there or update JAVA_HOME in this script and gradle.properties.
+  exit /b 1
+)
+
 echo.
 echo [Roofy Music] Checking connected Android devices...
 where adb >nul 2>nul
@@ -23,10 +29,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
+call gradlew.bat --stop >nul 2>nul
+
 echo.
 echo [Roofy Music] Building Foss release APK...
 echo Note: release uses app.roofymusic.mobile (not the .debug package).
-call gradlew.bat :app:assembleFossRelease
+call gradlew.bat :app:assembleFossRelease --no-configuration-cache
 if errorlevel 1 (
   echo.
   echo ERROR: Build failed.

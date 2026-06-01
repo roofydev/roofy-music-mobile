@@ -663,6 +663,32 @@ interface DatabaseDao {
     @Query("SELECT * FROM song WHERE id IN (:songIds)")
     suspend fun getSongsByIds(songIds: List<String>): List<Song>
 
+    @Transaction
+    @Query("SELECT * FROM song WHERE id LIKE 'subsonic:%' AND liked")
+    fun likedSubsonicSongs(): List<Song>
+
+    @Query(
+        "SELECT * FROM song WHERE id LIKE 'subsonic:%' AND subsonicUserRating IS NOT NULL AND subsonicUserRating > 0",
+    )
+    fun subsonicSongsWithRating(): List<Song>
+
+    @Query("SELECT * FROM playlist WHERE browseId LIKE 'subsonic:playlist:%' OR browseId LIKE 'subsonic:pending:%'")
+    fun subsonicManagedPlaylists(): List<PlaylistEntity>
+
+    @Query(
+        "SELECT * FROM event WHERE songId LIKE 'subsonic:%' AND timestamp > :since ORDER BY timestamp ASC LIMIT :limit",
+    )
+    fun subsonicEventsSince(
+        since: java.time.LocalDateTime,
+        limit: Int,
+    ): List<Event>
+
+    @Query("SELECT COUNT(*) > 0 FROM event WHERE songId = :songId AND timestamp = :timestamp")
+    suspend fun hasSubsonicEventAt(
+        songId: String,
+        timestamp: java.time.LocalDateTime,
+    ): Boolean
+
 
     @Transaction
     @Query("SELECT * FROM song_artist_map WHERE songId = :songId")

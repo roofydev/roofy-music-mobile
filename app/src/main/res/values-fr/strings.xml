@@ -25,7 +25,7 @@
     <string name="most_played_artists">Artistes les plus joués</string>
     <string name="most_played_albums">Albums les plus joués</string>
     <string name="search">Rechercher</string>
-    <string name="search_yt_music">Rechercher sur YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Rechercher dans votre bibliothèque…</string>
     <string name="filter_library">Bibliothèque</string>
     <string name="filter_liked">Favoris</string>
@@ -245,7 +245,7 @@
     <string name="options">Options</string>
     <string name="preview">Prévisualisation</string>
     <string name="action_logout">Se déconnecter</string>
-    <string name="enable_discord_rpc">Activer la présence riche</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="login_failed">Échec de la connexion</string>
     <string name="delete_playlist_confirm">Voulez-vous vraiment supprimer la playlist « %s » ?</string>
     <string name="listen_history">Historique d\'écoute</string>
@@ -284,7 +284,6 @@
     <string name="queue">File d\'attente</string>
     <string name="auto_load_more">Charger automatiquement plus de titres</string>
     <string name="auto_skip_next_on_error">Aller au titre suivant si une erreur apparaît</string>
-    <string name="discord_information">Roofy Music utilise la bibliothèque KizzyRPC pour définir le statut de votre compte Discord. Cela implique l\'utilisation de la connexion Discord Gateway, ce qui peut être considéré comme une violation des conditions d\'utilisation de Discord. Cependant, il n\'existe aucun cas connu de comptes d\'utilisateurs suspendus pour cette raison. Utilisez-le à vos propres risques. \n \nRoofy Music extraira uniquement votre jeton, et tout le reste sera stocké localement.</string>
     <string name="use_login_for_browse">Utiliser le compte connecté pour parcourir le contenu</string>
     <string name="use_login_for_browse_desc">Ceci peut influencer le contenu que vous voyez et affiche par exemple les albums Premium si vous êtes connecté avec un compte Premium</string>
     <string name="action_login">Se connecter</string>

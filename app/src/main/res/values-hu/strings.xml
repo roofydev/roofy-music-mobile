@@ -24,7 +24,7 @@
     <string name="most_played_artists">Legtöbbet játszott előadók</string>
     <string name="most_played_albums">Legtöbbet játszott albumok</string>
     <string name="search">Keresés</string>
-    <string name="search_yt_music">Keresés a YouTube Zenén…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Keresés a könyvtárban…</string>
     <string name="filter_library">Könyvtár</string>
     <string name="filter_liked">Kedvelt</string>
@@ -274,9 +274,8 @@
     <string name="enable_lrclib">A LrcLib dalszöveg szolgáltató engedélyezése</string>
     <string name="hide_explicit">Felnőtt tartalom elrejtése</string>
     <string name="discord_integration">Discord integráció</string>
-    <string name="discord_information">Az Roofy Music a KizzyRPC könyvtárat használja a Discord fiók státusz beállításhoz. Ez a Discord Gateway kapcsolatot használja, amely tekinthető a Discord felhasználási feltételek megszegésének is tágabb értelemben. Habár a múltban nem történt fiók tiltás emiatt, ettől függetlenül kérem használja saját felelősségre.\n\nAz Roofy Music csak a token-jét fogja kinyerni, minden más helyben tárolt.</string>
     <string name="dismiss">Elrejtés</string>
     <string name="options">Opciók</string>
     <string name="preview">Előnézet</string>
-    <string name="enable_discord_rpc">Rich Presence engedélyezése</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
 </resources>

@@ -414,8 +414,11 @@ dependencies {
     implementation(libs.protobuf.kotlin.lite)
 
     implementation(libs.youtubedl.android)
+    implementation(libs.zxing.embedded)
 
     coreLibraryDesugaring(libs.desugaring)
 
     implementation(libs.timber)
+
+    testImplementation(libs.junit)
 }

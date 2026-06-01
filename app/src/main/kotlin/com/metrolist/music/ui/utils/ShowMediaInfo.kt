@@ -12,6 +12,7 @@ import android.content.Context
 import android.text.format.Formatter
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -53,7 +55,6 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.shimmer.ShimmerHost
 import com.metrolist.music.ui.component.shimmer.TextPlaceholder
 import com.metrolist.music.utils.rememberEnumPreference
-import androidx.compose.ui.platform.LocalLocale
 
 @Composable
 fun getLoudnessLevelLabel(loudnessLevel: LoudnessLevel): String {
@@ -85,7 +86,7 @@ fun ShowMediaInfo(videoId: String) {
 
     val loudnessLevel by rememberEnumPreference(
         LoudnessLevelKey,
-        defaultValue = LoudnessLevel.BALANCED
+        defaultValue = LoudnessLevel.BALANCED,
     )
 
     val targetLufs: Float = loudnessLevel.targetLufs
@@ -108,114 +109,172 @@ fun ShowMediaInfo(videoId: String) {
 
     LazyColumn(
         state = rememberLazyListState(),
-        modifier = Modifier
-            .padding(
-                windowInsets
-                    .asPaddingValues()
-            )
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+        modifier =
+            Modifier
+                .padding(
+                    windowInsets
+                        .asPaddingValues(),
+                )
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
     ) {
         if (info != null && song != null) {
             item(contentType = "MediaDetails") {
                 Column {
-                    val baseList = listOf(
-                        stringResource(R.string.song_title) to song?.title,
-                        stringResource(R.string.song_artists) to song?.artists?.joinToString { it.name },
-                        stringResource(R.string.media_id) to song?.id
-                    )
+                    var showTechnicalDetails by remember { mutableStateOf(false) }
 
-                    val baseIconsList = listOf(
-                        R.drawable.music_note,
-                        R.drawable.person,
-                        R.drawable.media3_icon_bookmark_filled,
-                    )
-
-                    val iconsList = listOf(
-                        R.drawable.media3_icon_feed,
-                        R.drawable.media3_icon_thumb_up_unfilled,
-                        R.drawable.media3_icon_thumb_down_unfilled,
-                        R.drawable.key,
-                        R.drawable.info,
-                        R.drawable.radio,
-                        R.drawable.gradient,
-                        R.drawable.contrast,
-                        R.drawable.volume_up,
-                        R.drawable.volume_up,
-                        R.drawable.volume_mute,
-                        R.drawable.content_copy
-                    )
-
-                    val measuredLufs: Double? = currentFormat?.perceptualLoudnessDb ?: currentFormat?.loudnessDb?.let { it + LoudnessLevel.AGGRESSIVE.targetLufs }
-
-                    val extendedList = if (currentFormat != null) {
+                    val overviewList =
                         listOf(
-                            stringResource(R.string.views) to info?.viewCount?.let(::numberFormatter).orEmpty(),
-                            stringResource(R.string.likes) to info?.like?.let(::numberFormatter).orEmpty(),
-                            stringResource(R.string.dislikes) to info?.dislike?.let(::numberFormatter).orEmpty(),
-                            "Itag" to currentFormat?.itag?.toString(),
-                            stringResource(R.string.mime_type) to currentFormat?.mimeType,
-                            stringResource(R.string.codecs) to currentFormat?.codecs,
-                            stringResource(R.string.bitrate) to currentFormat?.bitrate?.let { "${it / 1000} Kbps" },
-                            stringResource(R.string.sample_rate) to currentFormat?.sampleRate?.let { "$it Hz" },
-                            stringResource(R.string.loudness) to measuredLufs?.let {
-                                String.format(LocalLocale.current.platformLocale, "%.2f dB", it - targetLufs)
-                            },
-                            stringResource(R.string.loudness_level) to getLoudnessLevelLabel(loudnessLevel),
-                            stringResource(R.string.volume) to if (playerConnection != null) "${(playerConnection.player.volume * 100).toInt()}%" else null,
-                            stringResource(R.string.file_size) to
+                            stringResource(R.string.song_title) to song?.title,
+                            stringResource(R.string.song_artists) to song?.artists?.joinToString { it.name },
+                        )
+
+                    val overviewIcons =
+                        listOf(
+                            R.drawable.music_note,
+                            R.drawable.person,
+                        )
+
+                    val engagementIcons =
+                        listOf(
+                            R.drawable.media3_icon_feed,
+                            R.drawable.media3_icon_thumb_up_unfilled,
+                            R.drawable.media3_icon_thumb_down_unfilled,
+                            R.drawable.volume_up,
+                            R.drawable.volume_mute,
+                            R.drawable.content_copy,
+                        )
+
+                    val measuredLufs: Double? =
+                        currentFormat?.perceptualLoudnessDb
+                            ?: currentFormat?.loudnessDb?.let { it + LoudnessLevel.AGGRESSIVE.targetLufs }
+
+                    val engagementList =
+                        if (currentFormat != null) {
+                            listOf(
+                                stringResource(R.string.views) to info?.viewCount?.let(::numberFormatter).orEmpty(),
+                                stringResource(R.string.likes) to info?.like?.let(::numberFormatter).orEmpty(),
+                                stringResource(R.string.dislikes) to info?.dislike?.let(::numberFormatter).orEmpty(),
+                                stringResource(R.string.loudness_level) to getLoudnessLevelLabel(loudnessLevel),
+                                stringResource(R.string.volume) to
+                                    if (playerConnection != null) {
+                                        "${(playerConnection.player.volume * 100).toInt()}%"
+                                    } else {
+                                        null
+                                    },
+                                stringResource(R.string.file_size) to
                                     currentFormat?.contentLength?.let {
                                         Formatter.formatShortFileSize(
                                             context,
-                                            it
+                                            it,
                                         )
                                     },
-                        )
-                    } else {
-                        emptyList()
-                    }
+                            )
+                        } else {
+                            emptyList()
+                        }
 
-                    val cardsBaseList = mutableListOf<Material3SettingsItem>()
-                    val cardsExtendedList = mutableListOf<Material3SettingsItem>()
+                    val technicalIcons =
+                        listOf(
+                            R.drawable.media3_icon_bookmark_filled,
+                            R.drawable.key,
+                            R.drawable.info,
+                            R.drawable.radio,
+                            R.drawable.gradient,
+                            R.drawable.contrast,
+                        )
+
+                    val technicalList =
+                        if (currentFormat != null) {
+                            listOf(
+                                stringResource(R.string.media_id) to song?.id,
+                                "Itag" to currentFormat?.itag?.toString(),
+                                stringResource(R.string.mime_type) to currentFormat?.mimeType,
+                                stringResource(R.string.codecs) to currentFormat?.codecs,
+                                stringResource(R.string.bitrate) to currentFormat?.bitrate?.let { "${it / 1000} Kbps" },
+                                stringResource(R.string.sample_rate) to currentFormat?.sampleRate?.let { "$it Hz" },
+                                stringResource(R.string.loudness) to
+                                    measuredLufs?.let {
+                                        String.format(
+                                            LocalLocale.current.platformLocale,
+                                            "%.2f dB",
+                                            it - targetLufs,
+                                        )
+                                    },
+                            )
+                        } else {
+                            emptyList()
+                        }
+
+                    val cardsOverview = mutableListOf<Material3SettingsItem>()
+                    val cardsEngagement = mutableListOf<Material3SettingsItem>()
+                    val cardsTechnical = mutableListOf<Material3SettingsItem>()
                     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-                    baseList.forEachIndexed { index, (label, text) ->
-                        val displayText = text ?: stringResource(R.string.unknown)
-                        cardsBaseList += Material3SettingsItem(
-                            title = { Text(label) },
-                            description = { Text(displayText) },
-                            icon = painterResource(baseIconsList[index]),
-                            onClick = {
-                                cm.setPrimaryClip(ClipData.newPlainText("text", displayText))
-                                Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
-                            },
-                        )
+                    @Composable
+                    fun addItems(
+                        pairs: List<Pair<String, String?>>,
+                        icons: List<Int>,
+                        target: MutableList<Material3SettingsItem>,
+                    ) {
+                        pairs.forEachIndexed { index, (label, text) ->
+                            val displayText = text ?: stringResource(R.string.unknown)
+                            target +=
+                                Material3SettingsItem(
+                                    title = { Text(label) },
+                                    description = { Text(displayText) },
+                                    icon = painterResource(icons[index]),
+                                    onClick = {
+                                        cm.setPrimaryClip(ClipData.newPlainText("text", displayText))
+                                        Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
+                                    },
+                                )
+                        }
                     }
 
-                    extendedList.forEachIndexed { index, (label, text) ->
-                        val displayText = text ?: stringResource(R.string.unknown)
-                        cardsExtendedList += Material3SettingsItem(
-                            title = { Text(label) },
-                            description = { Text(displayText) },
-                            icon = painterResource(iconsList[index]),
-                            onClick = {
-                                cm.setPrimaryClip(ClipData.newPlainText("text", displayText))
-                                Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
-                            },
-                        )
-                    }
+                    addItems(overviewList, overviewIcons, cardsOverview)
+                    addItems(engagementList, engagementIcons, cardsEngagement)
+                    addItems(technicalList, technicalIcons, cardsTechnical)
 
                     Material3SettingsGroup(
                         title = stringResource(R.string.general),
-                        items = cardsBaseList
+                        items = cardsOverview,
                     )
 
-                    Spacer(Modifier.height(8.dp))
+                    if (cardsEngagement.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
 
-                    Material3SettingsGroup(
-                        title = stringResource(R.string.information),
-                        items = cardsExtendedList
-                    )
+                        Material3SettingsGroup(
+                            title = stringResource(R.string.information),
+                            items = cardsEngagement,
+                        )
+                    }
+
+                    if (cardsTechnical.isNotEmpty()) {
+                        Spacer(Modifier.height(8.dp))
+
+                        Text(
+                            text =
+                                if (showTechnicalDetails) {
+                                    stringResource(R.string.product_ux_hide_technical_details)
+                                } else {
+                                    stringResource(R.string.product_ux_view_technical_details)
+                                },
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier =
+                                Modifier
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .clickable { showTechnicalDetails = !showTechnicalDetails },
+                        )
+
+                        if (showTechnicalDetails) {
+                            Material3SettingsGroup(
+                                title = stringResource(R.string.product_ux_technical_details),
+                                items = cardsTechnical,
+                            )
+                        }
+                    }
 
                     Spacer(Modifier.height(8.dp))
 
@@ -223,16 +282,17 @@ fun ShowMediaInfo(videoId: String) {
 
                     Material3SettingsGroup(
                         title = stringResource(R.string.description),
-                        items = listOf(
-                            Material3SettingsItem(
-                                title = { Text(stringResource(R.string.description)) },
-                                description = { Text(descriptionText) },
-                                onClick = {
-                                    cm.setPrimaryClip(ClipData.newPlainText("text", descriptionText))
-                                    Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        )
+                        items =
+                            listOf(
+                                Material3SettingsItem(
+                                    title = { Text(stringResource(R.string.description)) },
+                                    description = { Text(descriptionText) },
+                                    onClick = {
+                                        cm.setPrimaryClip(ClipData.newPlainText("text", descriptionText))
+                                        Toast.makeText(context, R.string.copied, Toast.LENGTH_SHORT).show()
+                                    },
+                                ),
+                            ),
                     )
                 }
             }
@@ -242,9 +302,10 @@ fun ShowMediaInfo(videoId: String) {
                     Row(
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(all = 16.dp)
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(all = 16.dp),
                     ) {
                         TextPlaceholder()
                     }

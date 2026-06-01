@@ -85,7 +85,7 @@
     <string name="undo">Vrati</string>
     <string name="artists">Umjetnici</string>
     <string name="playlists">Spisci za reprodukciju</string>
-    <string name="search_yt_music">Pretraži YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="from_your_library">Iz vaše biblioteke</string>
     <string name="stats">Statistike</string>
     <string name="mood_and_genres">Raspoloženje i Žanrovi</string>
@@ -274,11 +274,10 @@
     <string name="action_backup">Rezervna kopija</string>
     <string name="action_restore">Povratak</string>
     <string name="imported_playlist">Spiska je uvezena</string>
-    <string name="discord_information">Roofy Music koristi KizzyRPC biblioteku kako bi stavio tvoj Discord status. Ovo uključuje korištenje Discord Gateway spajanja, što bi se moglo smatrati prekršajem Discord-ovog TOS-a. Međutim nema poznatih slučajeva gdje su korisnički nalozi bili suspendovani zbog ovoga razloga. Korisite na svoju štetu.\n\nRoofy Music će samo izvesti vaš žeton, i sve drugo je lokalno sklađeno.</string>
     <string name="login_failed">Neuspješno upisivanje</string>
     <string name="options">Opcije</string>
     <string name="preview">Pregled</string>
-    <string name="enable_discord_rpc">Omogući Bogatu Prisutnost</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="app_version">Verzija aplikacije</string>
     <string name="action_logout">Izpiši se</string>
     <string name="about">O Roofy Music-u</string>

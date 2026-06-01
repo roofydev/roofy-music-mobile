@@ -24,7 +24,7 @@
     <string name="most_played_artists">Pinakamadalas na pinatugtog na mga artista</string>
     <string name="most_played_albums">Pinakamadalas na pinatugtog na mga album</string>
     <string name="search">Maghanap</string>
-    <string name="search_yt_music">Maghanap sa YouTube Music…</string>
+    <string name="search_yt_music">Search songs, artists, albums, playlists, or videos</string>
     <string name="search_library">Maghanap sa aklatan…</string>
     <string name="filter_library">Aklatan</string>
     <string name="filter_liked">Na-like</string>
@@ -265,11 +265,10 @@
     <string name="backup_create_failed">Hindi makagawa ng backup</string>
     <string name="restore_failed">Nabigong ibalik ang backup</string>
     <string name="discord_integration">Pagsasama ng Discord</string>
-    <string name="discord_information">Ginagamit ng Roofy Music ang aklatan ng KizzyRPC para itakda ang kapalaran ng iyong Discord account. Kabilang dito ang paggamit ng koneksyon sa Discord Gateway, na maaaring ituring na isang paglabag sa TOS ng Discord. Gayunpaman, walang mga kilalang kaso ng mga user account na sinuspinde para sa kadahilanang ito. Gamitin sa iyong sariling peligro.\n\nKukunin lang ng Roofy Music ang iyong token, at lahat ng iba pa ay lokal na iniimbak.</string>
     <string name="dismiss">Balewalain</string>
     <string name="options">Mga Opsyon</string>
     <string name="preview">Pasilip</string>
-    <string name="enable_discord_rpc">Paganahin ang Rich Presence</string>
+    <string name="enable_discord_rpc">Show what I am listening to</string>
     <string name="about">Tungkol sa</string>
     <string name="app_version">Bersyon ng aplikasyon</string>
     <string name="new_version_available">Magagamit ang bagong bersyon</string>

@@ -88,6 +88,8 @@ import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
 import com.metrolist.music.constants.ListItemHeight
 import com.metrolist.music.constants.VarispeedKey
+import com.metrolist.music.ui.component.LocalMenuState
+import com.metrolist.music.ui.devices.ListenOnSheet
 import com.metrolist.music.listentogether.ConnectionState
 import com.metrolist.music.listentogether.ListenTogetherEvent
 import com.metrolist.music.models.MediaMetadata
@@ -107,6 +109,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
+import com.metrolist.music.productux.WatchVideo
 import com.metrolist.music.ui.theme.RetroButton
 import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroIconButton
@@ -162,6 +165,8 @@ fun PlayerMenu(
     var showListenTogetherDialog by rememberSaveable {
         mutableStateOf(false)
     }
+
+    val menuState = LocalMenuState.current
 
     val listenTogetherManager = LocalListenTogetherManager.current
     val listenTogetherRoleState = listenTogetherManager?.role?.collectAsStateWithLifecycle(initialValue = com.metrolist.music.listentogether.RoomRole.NONE)
@@ -475,6 +480,30 @@ fun PlayerMenu(
                                 ),
                             )
                         }
+                        val canOpenVideo =
+                            mediaMetadata.id.isNotBlank() &&
+                                !mediaMetadata.id.startsWith("subsonic:") &&
+                                !mediaMetadata.id.contains("/")
+                        if (canOpenVideo) {
+                            add(
+                                Material3MenuItemData(
+                                    title = { Text(text = stringResource(R.string.open_video)) },
+                                    icon = {
+                                        Icon(
+                                            painter = painterResource(R.drawable.play),
+                                            contentDescription = stringResource(R.string.open_video),
+                                            modifier = Modifier.size(24.dp),
+                                        )
+                                    },
+                                    onClick = {
+                                        val url = WatchVideo.videoUrlForTrack(trackId = mediaMetadata.id)
+                                        WatchVideo.open(context, navController, url)
+                                        playerBottomSheetState.collapseSoft()
+                                        onDismiss()
+                                    },
+                                ),
+                            )
+                        }
                         // Add to Library option
                         val isInLibrary = librarySong?.song?.inLibrary != null
                         add(
@@ -623,6 +652,39 @@ fun PlayerMenu(
                                 )
                             }
                         },
+                    ),
+            )
+        }
+
+        item { Spacer(modifier = Modifier.height(12.dp)) }
+
+        item {
+            Material3MenuGroup(
+                items =
+                    listOf(
+                        Material3MenuItemData(
+                            title = { Text(text = stringResource(R.string.listen_on_title)) },
+                            description = {
+                                Text(text = stringResource(R.string.listen_on_menu_desc))
+                            },
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.listen_on),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            },
+                            onClick = {
+                                onDismiss()
+                                menuState.show {
+                                    ListenOnSheet(
+                                        onDismiss = menuState::dismiss,
+                                        navController = navController,
+                                        playerBottomSheetState = playerBottomSheetState,
+                                    )
+                                }
+                            },
+                        ),
                     ),
             )
         }

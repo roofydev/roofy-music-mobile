@@ -51,6 +51,8 @@ import com.metrolist.music.playback.queues.ListQueue
 import com.metrolist.music.ui.component.DefaultDialog
 import com.metrolist.music.ui.component.Material3MenuGroup
 import com.metrolist.music.ui.component.Material3MenuItemData
+import com.metrolist.music.ui.component.NewAction
+import com.metrolist.music.ui.component.NewActionGrid
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -224,6 +226,69 @@ fun YouTubeSelectionSongMenu(
             ),
     ) {
         item {
+            NewActionGrid(
+                actions =
+                    listOfNotNull(
+                        if (!isGuest) {
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.playlist_play),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                text = stringResource(R.string.play_next),
+                                onClick = {
+                                    playerConnection.playNext(songSelection.map { it.toMediaItem() })
+                                    clearAction()
+                                    onDismiss()
+                                },
+                            )
+                        } else {
+                            null
+                        },
+                        NewAction(
+                            icon = {
+                                Icon(
+                                    painter = painterResource(R.drawable.playlist_add),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            text = stringResource(R.string.add_to_playlist),
+                            onClick = {
+                                showChoosePlaylistDialog = true
+                            },
+                        ),
+                        if (!isGuest) {
+                            NewAction(
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(R.drawable.queue_music),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(28.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                text = stringResource(R.string.add_to_queue),
+                                onClick = {
+                                    playerConnection.addToQueue(songSelection.map { it.toMediaItem() })
+                                    clearAction()
+                                    onDismiss()
+                                },
+                            )
+                        } else {
+                            null
+                        },
+                    ),
+                columns = if (isGuest) 2 else 3,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 16.dp),
+            )
+        }
+        item {
             Material3MenuGroup(
                 listOfNotNull(
                     if (!isGuest) {
@@ -262,26 +327,6 @@ fun YouTubeSelectionSongMenu(
                     } else {
                         null
                     },
-                    if (!isGuest) {
-                        Material3MenuItemData(
-                            icon = { Icon(painterResource(R.drawable.queue_music), null) },
-                            title = { Text(stringResource(R.string.add_to_queue)) },
-                            onClick = {
-                                playerConnection.addToQueue(songSelection.map { it.toMediaItem() })
-                                clearAction()
-                                onDismiss()
-                            },
-                        )
-                    } else {
-                        null
-                    },
-                    Material3MenuItemData(
-                        icon = { Icon(painterResource(R.drawable.playlist_add), null) },
-                        title = { Text(stringResource(R.string.add_to_playlist)) },
-                        onClick = {
-                            showChoosePlaylistDialog = true
-                        },
-                    ),
                     Material3MenuItemData(
                         title = {
                             Text(

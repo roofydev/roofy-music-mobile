@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Microphone feature for music recognition (not required) -->
@@ -56,6 +59,11 @@
             android:process=":crash" />
 
         <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="fullSensor"
+            tools:replace="screenOrientation" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
@@ -87,6 +95,42 @@
                 <data android:scheme="https" />
                 <data android:host="metrolist.meowery.eu" />
                 <data android:pathPrefix="/listen" />
+            </intent-filter>
+
+            <!-- Roofy desktop Personal Library pairing link -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="roofymusic" />
+                <data android:host="pair" />
+                <data android:pathPrefix="/subsonic" />
+            </intent-filter>
+
+            <!-- Roofy desktop import queue pairing link -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="roofymusic" />
+                <data android:host="pair" />
+                <data android:pathPrefix="/import" />
+            </intent-filter>
+
+            <!-- Unified phone link (library + save-to-desktop) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="roofymusic" />
+                <data android:host="pair" />
+                <data android:pathPrefix="/device" />
             </intent-filter>
 
             <!-- Youtube filter -->
@@ -240,6 +284,11 @@
 
         <service
             android:name=".update.AppUpdateDownloadService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <service
+            android:name=".subsonic.PersonalLibraryImportService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 

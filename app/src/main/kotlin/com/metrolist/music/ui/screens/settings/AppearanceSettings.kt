@@ -89,7 +89,6 @@ import com.metrolist.music.constants.PlayerButtonsStyleKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.RespectAgentPositioningKey
 import com.metrolist.music.constants.SelectedThemeColorKey
-import com.metrolist.music.constants.ShowCachedPlaylistKey
 import com.metrolist.music.constants.ShowDownloadedPlaylistKey
 import com.metrolist.music.constants.ShowLikedPlaylistKey
 import com.metrolist.music.constants.ShowTopPlaylistKey
@@ -341,11 +340,6 @@ fun AppearanceSettings(
     val (showTopPlaylist, onShowTopPlaylistChange) =
         rememberPreference(
             ShowTopPlaylistKey,
-            defaultValue = true,
-        )
-    val (showCachedPlaylist, onShowCachedPlaylistChange) =
-        rememberPreference(
-            ShowCachedPlaylistKey,
             defaultValue = true,
         )
     val (showUploadedPlaylist, onShowUploadedPlaylistChange) =
@@ -1620,18 +1614,6 @@ fun AppearanceSettings(
                                 )
                         },
                         onClick = { onShowTopPlaylistChange(!showTopPlaylist) },
-                    ),
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.cached),
-                        title = { Text(stringResource(R.string.show_cached_playlist)) },
-                        trailingContent = {
-                            RetroToggle(
-                                checked = showCachedPlaylist,
-                                onCheckedChange = onShowCachedPlaylistChange,
-                                
-                                )
-                        },
-                        onClick = { onShowCachedPlaylistChange(!showCachedPlaylist) },
                     ),
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.backup),

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.mediarouter.media.MediaRouter
@@ -51,7 +52,14 @@ fun CastPickerSheet(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = if (currentlyConnectedRoute != null) "Casting" else "Cast to",
+                text =
+                    stringResource(
+                        if (currentlyConnectedRoute != null) {
+                            R.string.devices_cast_sheet_title_active
+                        } else {
+                            R.string.devices_cast_sheet_title_pick
+                        },
+                    ),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -70,7 +78,7 @@ fun CastPickerSheet(
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = "Connecting...",
+                    text = stringResource(R.string.devices_cast_connecting),
                     style = MaterialTheme.typography.bodyLarge
                 )
             }

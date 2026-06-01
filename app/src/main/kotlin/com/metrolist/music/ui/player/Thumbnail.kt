@@ -82,6 +82,10 @@ import com.metrolist.music.constants.SeekExtraSeconds
 import com.metrolist.music.constants.SwipeThumbnailKey
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.ui.component.CastButton
+import com.metrolist.music.ui.component.BottomSheetState
+import com.metrolist.music.ui.devices.ListenOnButton
+import androidx.compose.foundation.layout.Row
+import androidx.navigation.NavController
 import com.metrolist.music.ui.theme.RetroArtwork
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.utils.rememberEnumPreference
@@ -192,6 +196,8 @@ private fun getTextColor(playerBackground: PlayerBackgroundStyle): Color {
 @Composable
 fun Thumbnail(
     sliderPositionProvider: () -> Long?,
+    navController: NavController,
+    playerBottomSheetState: BottomSheetState? = null,
     modifier: Modifier = Modifier,
     isPlayerExpanded: () -> Boolean = { true },
     isLandscape: Boolean = false,
@@ -394,6 +400,8 @@ fun Thumbnail(
                                 onSeek = onSeekCallback,
                                 playerConnection = playerConnection,
                                 context = context,
+                                navController = navController,
+                                playerBottomSheetState = playerBottomSheetState,
                                 isLandscape = isLandscape,
                                 isListenTogetherGuest = isListenTogetherGuest,
                                 currentMediaId = mediaMetadata?.id,
@@ -491,6 +499,8 @@ private fun ThumbnailItem(
     onSeek: (String, Boolean) -> Unit,
     playerConnection: com.metrolist.music.playback.PlayerConnection,
     context: android.content.Context,
+    navController: NavController,
+    playerBottomSheetState: BottomSheetState?,
     isLandscape: Boolean = false,
     isListenTogetherGuest: Boolean = false,
     currentMediaId: String? = null,
@@ -568,13 +578,20 @@ private fun ThumbnailItem(
                 )
             }
             
-            // Cast button at top-right corner of thumbnail
-            CastButton(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp),
-                tintColor = textBackgroundColor
-            )
+            Row(
+                modifier =
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                ListenOnButton(
+                    navController = navController,
+                    playerBottomSheetState = playerBottomSheetState,
+                    tintColor = textBackgroundColor,
+                )
+                CastButton(tintColor = textBackgroundColor)
+            }
         }
     }
 }
