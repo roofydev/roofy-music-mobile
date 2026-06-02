@@ -30,7 +30,8 @@ import com.metrolist.music.constants.AudioQuality
 import com.metrolist.music.utils.cipher.CipherDeobfuscator
 import com.metrolist.music.utils.potoken.PoTokenGenerator
 import com.metrolist.music.utils.potoken.PoTokenResult
-import com.metrolist.music.utils.sabr.EjsNTransformSolver
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.OkHttpClient
 import timber.log.Timber
 
@@ -45,6 +46,7 @@ object YTPlayerUtils {
         .build()
 
     private val poTokenGenerator = PoTokenGenerator()
+    private val visitorDataLock = Mutex()
 
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
 
@@ -100,7 +102,11 @@ object YTPlayerUtils {
 
         // Generate PoToken
         var poToken: PoTokenResult? = null
-        val sessionId = if (isLoggedIn) YouTube.dataSyncId else YouTube.visitorData
+        val sessionId = if (isLoggedIn) {
+            YouTube.dataSyncId ?: ensureVisitorData()
+        } else {
+            ensureVisitorData()
+        }
         if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
             Timber.tag(logTag).d("Generating PoToken for WEB_REMIX with sessionId")
             try {
@@ -651,6 +657,25 @@ object YTPlayerUtils {
                 SignatureTimestampResult(null, isAgeRestricted)
             }
         )
+    }
+
+    private suspend fun ensureVisitorData(): String? {
+        YouTube.visitorData?.takeIf { it.isNotBlank() && it != "null" }?.let { return it }
+
+        return visitorDataLock.withLock {
+            YouTube.visitorData?.takeIf { it.isNotBlank() && it != "null" }?.let { return@withLock it }
+
+            YouTube.visitorData()
+                .onSuccess { visitorData ->
+                    YouTube.visitorData = visitorData
+                    Timber.tag(TAG).d("Fetched visitorData for playback session")
+                }
+                .onFailure { error ->
+                    Timber.tag(TAG).w(error, "Could not fetch visitorData before playback")
+                    reportException(error)
+                }
+                .getOrNull()
+        }
     }
 
     private suspend fun findUrlOrNull(

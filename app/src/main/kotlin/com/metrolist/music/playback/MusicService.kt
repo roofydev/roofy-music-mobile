@@ -3079,7 +3079,13 @@ class MusicService :
                 delay(RETRY_DELAY_MS)
 
                 val currentIndex = player.currentMediaItemIndex
-                player.stop()
+                if (currentIndex == C.INDEX_UNSET) {
+                    Timber.tag(TAG).w("Invalid media item index during generic IO recovery")
+                    handleFinalFailure()
+                    return@launch
+                }
+                val currentPosition = player.currentPosition
+                player.seekTo(currentIndex, currentPosition)
                 player.prepare()
 
                 Timber.tag(TAG).d("Retrying playback for $mediaId after generic IO error")
