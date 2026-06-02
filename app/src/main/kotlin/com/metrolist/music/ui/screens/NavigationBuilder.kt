@@ -47,6 +47,7 @@ import com.metrolist.music.ui.screens.search.OnlineSearchResult
 import com.metrolist.music.ui.screens.search.SearchScreen
 import com.metrolist.music.ui.screens.video.VideoWatchScreen
 import com.metrolist.music.ui.screens.settings.AboutScreen
+import com.metrolist.music.ui.screens.settings.AccountSettings
 import com.metrolist.music.ui.screens.settings.AiSettings
 import com.metrolist.music.ui.screens.settings.AndroidAutoSettings
 import com.metrolist.music.ui.screens.settings.AppearanceSettings
@@ -355,6 +356,14 @@ fun NavGraphBuilder.navigationBuilder(
 
     composable("settings") {
         SettingsScreen(navController, latestVersionName)
+    }
+
+    composable("settings/account") {
+        AccountSettings(
+            navController = navController,
+            onClose = navController::navigateUp,
+            latestVersionName = latestVersionName,
+        )
     }
 
     composable("settings/appearance") {

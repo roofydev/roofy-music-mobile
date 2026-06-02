@@ -1095,6 +1095,63 @@ fun HomeScreen(
                     )
                 }
 
+                if (selectedChip == null) {
+                    item(key = "together_context") {
+                        val togetherStatus =
+                            when {
+                                listenTogetherManager?.isInRoom == true && isListenTogetherGuest ->
+                                    stringResource(R.string.listen_together_you_are_guest)
+                                listenTogetherManager?.isInRoom == true ->
+                                    stringResource(R.string.listen_together_you_are_host)
+                                else -> stringResource(R.string.listen_together_disconnected)
+                            }
+                        RetroPanel(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                                .fillMaxWidth()
+                                .clickable {
+                                    navController.navigate("listen_together_from_topbar") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.group_outlined),
+                                    contentDescription = null,
+                                    tint = RetroTokens.TextHot,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.listen_together),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = RetroTokens.TextHot,
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.listen_together_home_desc),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = RetroTokens.TextMuted,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                Text(
+                                    text = togetherStatus,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = RetroTokens.TextSoft,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                    }
+                }
+
                 if (isLoading && homePage?.chips.isNullOrEmpty()) {
                     item(key = "chips_shimmer") {
                         ShimmerHost(showGradient = false) {

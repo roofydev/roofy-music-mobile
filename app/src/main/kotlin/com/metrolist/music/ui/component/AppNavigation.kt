@@ -6,13 +6,14 @@
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,8 +29,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -39,21 +38,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.metrolist.music.ui.screens.Screens
 import com.metrolist.music.ui.theme.RetroTokens
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
-
-@Immutable
-private data class NavItemState(
-    val isSelected: Boolean,
-    val iconRes: Int
-)
 
 @Stable
 private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigationItems: List<Screens>): Boolean {
@@ -71,6 +61,7 @@ private fun isRouteSelected(currentRoute: String?, screenRoute: String, navigati
     return false
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppNavigationRail(
     navigationItems: List<Screens>,
@@ -82,7 +73,6 @@ fun AppNavigationRail(
 ) {
     val containerColor = if (pureBlack) Color.Black else RetroTokens.Background2
     val haptics = LocalHapticFeedback.current
-    val viewConfiguration = LocalViewConfiguration.current
 
     Column(
         modifier = modifier
@@ -105,32 +95,6 @@ fun AppNavigationRail(
             val isSearchItem = screen == Screens.Search && onSearchLongClick != null
             val interactionSource = remember { MutableInteractionSource() }
 
-            // Long press detection using InteractionSource
-            if (isSearchItem) {
-                LaunchedEffect(interactionSource) {
-                    var isLongClick = false
-                    interactionSource.interactions.collectLatest { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> {
-                                isLongClick = false
-                                delay(viewConfiguration.longPressTimeoutMillis)
-                                isLongClick = true
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSearchLongClick.invoke()
-                            }
-                            is PressInteraction.Release -> {
-                                if (!isLongClick) {
-                                    onItemClick(screen, currentIsSelected)
-                                }
-                            }
-                            is PressInteraction.Cancel -> {
-                                isLongClick = false
-                            }
-                        }
-                    }
-                }
-            }
-
             RetroNavItem(
                 screen = screen,
                 selected = isSelected,
@@ -140,11 +104,15 @@ fun AppNavigationRail(
                     .fillMaxSize()
                     .weight(1f),
                 interactionSource = interactionSource,
-                onClick = {
-                    if (!isSearchItem) {
-                        onItemClick(screen, currentIsSelected)
+                onClick = { onItemClick(screen, currentIsSelected) },
+                onLongClick = if (isSearchItem) {
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onSearchLongClick?.invoke()
                     }
-                }
+                } else {
+                    null
+                },
             )
         }
 
@@ -152,6 +120,7 @@ fun AppNavigationRail(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppNavigationBar(
     navigationItems: List<Screens>,
@@ -165,7 +134,6 @@ fun AppNavigationBar(
     val containerColor = if (pureBlack) Color.Black else RetroTokens.Background2
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val haptics = LocalHapticFeedback.current
-    val viewConfiguration = LocalViewConfiguration.current
 
     Row(
         modifier = modifier
@@ -186,32 +154,6 @@ fun AppNavigationBar(
             val isSearchItem = screen == Screens.Search && onSearchLongClick != null
             val interactionSource = remember { MutableInteractionSource() }
 
-            // Long press detection using InteractionSource
-            if (isSearchItem) {
-                LaunchedEffect(interactionSource) {
-                    var isLongClick = false
-                    interactionSource.interactions.collectLatest { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> {
-                                isLongClick = false
-                                delay(viewConfiguration.longPressTimeoutMillis)
-                                isLongClick = true
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onSearchLongClick.invoke()
-                            }
-                            is PressInteraction.Release -> {
-                                if (!isLongClick) {
-                                    onItemClick(screen, currentIsSelected)
-                                }
-                            }
-                            is PressInteraction.Cancel -> {
-                                isLongClick = false
-                            }
-                        }
-                    }
-                }
-            }
-
             RetroNavItem(
                 screen = screen,
                 selected = isSelected,
@@ -221,16 +163,21 @@ fun AppNavigationBar(
                     .weight(1f)
                     .fillMaxHeight(),
                 interactionSource = interactionSource,
-                onClick = {
-                    if (!isSearchItem) {
-                        onItemClick(screen, currentIsSelected)
+                onClick = { onItemClick(screen, currentIsSelected) },
+                onLongClick = if (isSearchItem) {
+                    {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onSearchLongClick?.invoke()
                     }
+                } else {
+                    null
                 },
             )
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun RetroNavItem(
     screen: Screens,
@@ -240,15 +187,24 @@ private fun RetroNavItem(
     modifier: Modifier = Modifier,
     interactionSource: MutableInteractionSource,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
 ) {
+    val pressed by interactionSource.collectIsPressedAsState()
     val color = if (selected) RetroTokens.Active else RetroTokens.TextSoft
     Column(
         modifier = modifier
-            .background(if (selected) RetroTokens.Panel2 else Color.Transparent)
-            .border(1.dp, if (selected) RetroTokens.ActiveMuted else RetroTokens.BorderMuted)
-            .clickable(
+            .background(
+                when {
+                    selected -> RetroTokens.Panel2
+                    pressed -> RetroTokens.Panel
+                    else -> Color.Transparent
+                },
+            )
+            .border(1.dp, if (selected || pressed) RetroTokens.BorderBright else RetroTokens.BorderMuted)
+            .combinedClickable(
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
+                onLongClick = onLongClick,
                 onClick = onClick,
             )
             .padding(horizontal = 6.dp, vertical = 4.dp),

@@ -174,7 +174,6 @@ import com.metrolist.music.playback.MusicService
 import com.metrolist.music.playback.MusicService.MusicBinder
 import com.metrolist.music.playback.PlayerConnection
 import com.metrolist.music.playback.queues.YouTubeQueue
-import com.metrolist.music.ui.component.AccountSettingsDialog
 import com.metrolist.music.ui.component.AppNavigationBar
 import com.metrolist.music.ui.component.AppNavigationRail
 import com.metrolist.music.ui.component.BottomSheetMenu
@@ -724,8 +723,8 @@ class MainActivity : ComponentActivity() {
                 val tabOpenedFromShortcut =
                     remember {
                         when (intent?.action) {
-                            ACTION_SEARCH -> NavigationTab.LIBRARY
-                            ACTION_LIBRARY -> NavigationTab.SEARCH
+                            ACTION_SEARCH -> NavigationTab.SEARCH
+                            ACTION_LIBRARY -> NavigationTab.LIBRARY
                             else -> null
                         }
                     }
@@ -976,11 +975,10 @@ class MainActivity : ComponentActivity() {
                             Screens.Search.route -> R.string.search
                             Screens.Library.route -> R.string.filter_library
                             Screens.ListenTogether.route -> R.string.together
+                            "account" -> R.string.youtube_library
                             else -> null
                         }
                     }
-
-                var showAccountDialog by remember { mutableStateOf(false) }
 
                 val pauseListenHistory by rememberPreference(PauseListenHistoryKey, defaultValue = false)
                 val eventCount by database.eventCount().collectAsStateWithLifecycle(initialValue = 0)
@@ -1023,7 +1021,7 @@ class MainActivity : ComponentActivity() {
                                     TopAppBar(
                                         title = {
                                             Text(
-                                                text = "${currentTitleRes?.let { stringResource(it) } ?: ""}_",
+                                                text = currentTitleRes?.let { stringResource(it) }.orEmpty(),
                                                 style = MaterialTheme.typography.titleLarge,
                                                 color = RetroTokens.TextHot,
                                             )
@@ -1071,7 +1069,13 @@ class MainActivity : ComponentActivity() {
                                                 )
                                             }
                                             Text("|", color = RetroTokens.BorderMuted)
-                                            IconButton(onClick = { showAccountDialog = true }) {
+                                            IconButton(
+                                                onClick = {
+                                                    navController.navigate("settings/account") {
+                                                        launchSingleTop = true
+                                                    }
+                                                },
+                                            ) {
                                                 BadgedBox(badge = {
                                                     if (latestVersionName != BuildConfig.VERSION_NAME) {
                                                         Badge()
@@ -1401,17 +1405,6 @@ class MainActivity : ComponentActivity() {
                         state = LocalBottomSheetPageState.current,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
-
-                    if (showAccountDialog) {
-                        AccountSettingsDialog(
-                            navController = navController,
-                            onDismiss = {
-                                showAccountDialog = false
-                                homeViewModel.refresh()
-                            },
-                            latestVersionName = latestVersionName,
-                        )
-                    }
 
                     sharedSong?.let { song ->
                         playerConnection?.let {

@@ -390,6 +390,14 @@
     <string name="settings_section_storage">Storage &amp; Data</string>
     <string name="settings_section_system">System &amp; About</string>
     <string name="settings_connected_services">Connected services</string>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_section_library_downloads">Library &amp; Downloads</string>
+    <string name="settings_section_devices_integrations">Devices &amp; Integrations</string>
+    <string name="settings_section_about">About</string>
+    <string name="account_settings">Account settings</string>
+    <string name="youtube_library">YouTube Library</string>
+    <string name="youtube_library_desc">Saved playlists, albums, artists, and podcasts from your account</string>
+    <string name="settings_integrations_desc">Connect services, computers, social listening, and personal library tools</string>
 
     <!-- Updater -->
     <string name="updater">Updater</string>
@@ -635,6 +643,7 @@
     <string name="listen_together_in_top_bar">Listen Together in top bar</string>
     <string name="listen_together_in_top_bar_desc">Show Listen Together in the top app bar instead of the navigation bar</string>
     <string name="listen_together_description">Listen to music with your friends in real time. Create a room to host, or join an existing room with a code</string>
+    <string name="listen_together_home_desc">Create or join a shared room when you want to listen with others.</string>
     <string name="listen_together_background_disconnect_note">NOTE: When you are connected but not in a room, Listen Together disconnects after 30 minutes in the background to save battery</string>
     <string name="listen_together_not_configured">Listen Together is not set up. Please configure the server URL in: Listen Together &gt; Settings &gt; Server URL</string>
     <string name="listen_together_suggestion_received">%1$s suggested %2$s</string>

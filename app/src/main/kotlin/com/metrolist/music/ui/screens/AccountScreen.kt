@@ -330,7 +330,7 @@ fun AccountScreen(
     }
 
     TopAppBar(
-        title = { Text(stringResource(R.string.account)) },
+        title = { Text(stringResource(R.string.youtube_library)) },
         navigationIcon = {
             IconButton(
                 onClick = navController::navigateUp,

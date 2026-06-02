@@ -241,11 +241,11 @@ fun SearchScreen(
                             if (query.text.isNotEmpty()) {
                                 RetroIconButton(
                                     onClick = { query = TextFieldValue("") },
-                                    modifier = Modifier.size(32.dp),
+                                    modifier = Modifier.size(48.dp),
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.close),
-                                        contentDescription = null,
+                                        contentDescription = stringResource(R.string.clear_search),
                                         tint = RetroTokens.TextSoft,
                                         modifier = Modifier.size(18.dp),
                                     )
@@ -258,7 +258,7 @@ fun SearchScreen(
                                         launchSingleTop = true
                                     }
                                 },
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(48.dp),
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.mic),
@@ -273,7 +273,7 @@ fun SearchScreen(
                 navigationIcon = {
                     RetroIconButton(
                         onClick = { navController.navigateUp() },
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.arrow_back),
