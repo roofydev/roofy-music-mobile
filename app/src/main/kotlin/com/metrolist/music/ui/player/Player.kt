@@ -150,6 +150,7 @@ import com.metrolist.music.constants.SquigglySliderKey
 import com.metrolist.music.constants.ThumbnailCornerRadius
 import com.metrolist.music.desktopimport.DesktopRemoteClient
 import com.metrolist.music.desktopimport.DesktopRemoteState
+import com.metrolist.music.ui.component.VolumeSlider
 import com.metrolist.music.db.entities.LyricsEntity
 import com.metrolist.music.extensions.metadata
 import com.metrolist.music.extensions.togglePlayPause
@@ -1528,6 +1529,12 @@ private fun DesktopRemoteNowPlayingPanel(
     var sliderPosition by remember(track?.id, durationMs) { mutableStateOf<Long?>(null) }
     val shownPosition = if (isUnavailable) 0L else (sliderPosition ?: remoteState.positionMs).coerceAtLeast(0L)
     val canControl = remoteState.connected
+    var volumeSliderValue by remember(remoteState.volume) {
+        mutableFloatStateOf((remoteState.volume ?: DesktopRemoteClient.DEFAULT_VOLUME) / 100f)
+    }
+    LaunchedEffect(remoteState.volume) {
+        remoteState.volume?.let { volumeSliderValue = it / 100f }
+    }
     val titleText =
         when {
             isUnavailable -> stringResource(R.string.listen_on_computer_unavailable_title)
@@ -1660,6 +1667,20 @@ private fun DesktopRemoteNowPlayingPanel(
                     tint = if (canControl) RetroTokens.Text else RetroTokens.TextDim,
                 )
             }
+        }
+
+        if (canControl) {
+            Spacer(Modifier.height(20.dp))
+            VolumeSlider(
+                value = volumeSliderValue,
+                onValueChange = { volumeSliderValue = it },
+                onValueChangeFinished = {
+                    DesktopRemoteClient.setVolume((volumeSliderValue * 100f).toInt())
+                },
+                enabled = true,
+                accentColor = RetroTokens.Magenta,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         if (isUnavailable) {
