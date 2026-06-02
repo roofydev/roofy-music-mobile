@@ -115,22 +115,10 @@ fun LibraryScreen(navController: NavController) {
         when (filterType) {
             LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
             LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
-            LibraryFilter.SONGS -> LibrarySongsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
-            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
-            LibraryFilter.ARTISTS -> LibraryArtistsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
-            LibraryFilter.PODCASTS -> LibraryPodcastsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
+            LibraryFilter.SONGS -> LibrarySongsScreen(navController, filterContent)
+            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, filterContent)
+            LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, filterContent)
+            LibraryFilter.PODCASTS -> LibraryPodcastsScreen(navController, filterContent)
         }
     }
 }

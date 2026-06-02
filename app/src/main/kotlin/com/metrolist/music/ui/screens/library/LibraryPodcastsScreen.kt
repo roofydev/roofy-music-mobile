@@ -71,7 +71,6 @@ import coil3.request.ImageRequest
 import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.ui.theme.RetroIconButton
-import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.LocalSyncUtils
@@ -108,7 +107,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LibraryPodcastsScreen(
     navController: NavController,
-    onDeselect: () -> Unit,
+    filterContent: @Composable () -> Unit,
     viewModel: LibraryPodcastsViewModel = hiltViewModel(),
 ) {
     val downloadedEpisodesStr = stringResource(R.string.downloaded_episodes)
@@ -184,14 +183,9 @@ fun LibraryPodcastsScreen(
                     },
                 ),
     ) {
-        // Chip row header — same pattern as LibrarySongsScreen
-        val chipsHeader = @Composable {
-            Row {
-                Spacer(Modifier.width(12.dp))
-                RetroTextButton(
-                    text = stringResource(R.string.filter_podcasts).uppercase(),
-                    onClick = onDeselect,
-                )
+        val libraryHeader = @Composable {
+            Column {
+                filterContent()
                 ChipsRow(
                     chips =
                         listOf(
@@ -201,7 +195,6 @@ fun LibraryPodcastsScreen(
                         ),
                     currentValue = podcastFilter,
                     onValueUpdate = { podcastFilter = it },
-                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -214,7 +207,7 @@ fun LibraryPodcastsScreen(
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
                 ) {
                     item(key = "filter", contentType = CONTENT_TYPE_HEADER) {
-                        chipsHeader()
+                        libraryHeader()
                     }
 
                     // RDPN "New Episodes" auto-playlist card
@@ -276,7 +269,7 @@ fun LibraryPodcastsScreen(
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
                 ) {
                     item(key = "filter", contentType = CONTENT_TYPE_HEADER) {
-                        chipsHeader()
+                        libraryHeader()
                     }
 
                     item(key = "channels_count", contentType = CONTENT_TYPE_HEADER) {
@@ -344,7 +337,7 @@ fun LibraryPodcastsScreen(
                     contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
                 ) {
                     item(key = "filter", contentType = CONTENT_TYPE_HEADER) {
-                        chipsHeader()
+                        libraryHeader()
                     }
 
                     item(key = "sort_header", contentType = CONTENT_TYPE_HEADER) {

@@ -88,7 +88,6 @@ import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.ArtistMenu
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.ui.theme.RetroIconButton
-import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -100,7 +99,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryArtistsScreen(
     navController: NavController,
-    onDeselect: () -> Unit,
+    filterContent: @Composable () -> Unit,
     viewModel: LibraryArtistsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -118,26 +117,18 @@ fun LibraryArtistsScreen(
     val gridItemSize by rememberEnumPreference(GridItemsSizeKey, GridItemSize.BIG)
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
 
-    val filterContent = @Composable {
-        Row {
-            Spacer(Modifier.width(12.dp))
-            RetroTextButton(
-                text = stringResource(R.string.artists).uppercase(),
-                onClick = onDeselect,
-            )
-            ChipsRow(
-                chips =
-                listOf(
-                    ArtistFilter.LIKED to stringResource(R.string.filter_liked),
-                    ArtistFilter.LIBRARY to stringResource(R.string.filter_library)
-                ),
-                currentValue = filter,
-                onValueUpdate = {
-                    filter = it
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
+    val subFilterContent = @Composable {
+        ChipsRow(
+            chips =
+            listOf(
+                ArtistFilter.LIKED to stringResource(R.string.filter_liked),
+                ArtistFilter.LIBRARY to stringResource(R.string.filter_library)
+            ),
+            currentValue = filter,
+            onValueUpdate = {
+                filter = it
+            },
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -255,7 +246,10 @@ fun LibraryArtistsScreen(
                         key = "filter",
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
-                        filterContent()
+                        Column {
+                            filterContent()
+                            subFilterContent()
+                        }
                     }
 
                     item(
@@ -318,7 +312,10 @@ fun LibraryArtistsScreen(
                         span = { GridItemSpan(maxLineSpan) },
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
-                        filterContent()
+                        Column {
+                            filterContent()
+                            subFilterContent()
+                        }
                     }
 
                     item(
