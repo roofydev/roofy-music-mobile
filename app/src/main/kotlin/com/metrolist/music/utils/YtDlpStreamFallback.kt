@@ -28,6 +28,8 @@ object YtDlpStreamFallback {
     private const val TAG = "YtDlpFallback"
     private const val DEFAULT_EXPIRES_IN_SECONDS = 6 * 60 * 60
     private const val DEFAULT_CONTENT_LENGTH = 10_000_000L
+    private const val STREAM_VALIDATION_RANGE = "bytes=0-2047"
+    private const val STREAM_VALIDATION_SAMPLE_BYTES = 2048L
 
     @Volatile
     private var appContext: Context? = null
@@ -238,8 +240,8 @@ object YtDlpStreamFallback {
         val headRequest = Request.Builder().head().url(streamUrl).build()
         try {
             httpClient.newCall(headRequest).execute().use { response ->
-                if (response.isSuccessful) return true
-                if (response.code != 405) return false
+                if (!response.isSuccessful && response.code != 405) return false
+                if (looksLikeReloadPage(response)) return false
             }
         } catch (e: Exception) {
             Timber.tag(TAG).d(e, "yt-dlp HEAD validation failed")
@@ -248,16 +250,41 @@ object YtDlpStreamFallback {
         val rangeRequest =
             Request.Builder()
                 .url(streamUrl)
-                .header("Range", "bytes=0-0")
+                .header("Range", STREAM_VALIDATION_RANGE)
                 .build()
         return try {
             httpClient.newCall(rangeRequest).execute().use { response ->
-                response.isSuccessful
+                response.isSuccessful && !looksLikeReloadPage(response)
             }
         } catch (e: Exception) {
             Timber.tag(TAG).d(e, "yt-dlp range validation failed")
             false
         }
+    }
+
+    private fun looksLikeReloadPage(response: okhttp3.Response): Boolean {
+        val contentType = response.header("Content-Type")?.lowercase().orEmpty()
+        if (contentType.contains("text/html") || contentType.contains("text/plain")) {
+            return true
+        }
+
+        val body = response.body ?: return false
+        return runCatching {
+            val source = body.source()
+            source.request(STREAM_VALIDATION_SAMPLE_BYTES)
+            val buffer = source.buffer.clone()
+            val sample =
+                buffer
+                    .readString(
+                        minOf(buffer.size, STREAM_VALIDATION_SAMPLE_BYTES),
+                        Charsets.UTF_8,
+                    ).lowercase()
+            sample.contains("page needs to be reloaded") ||
+                sample.contains("page must be reloaded") ||
+                sample.contains("reload the page") ||
+                sample.contains("la pagina deve essere ricaricata") ||
+                sample.contains("pagina deve essere ricaricata")
+        }.getOrDefault(false)
     }
 
     private fun fetchContentLength(streamUrl: String): Long? {

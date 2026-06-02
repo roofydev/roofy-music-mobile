@@ -28,9 +28,6 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.metrolist.innertube.models.response.PlayerResponse
 import com.metrolist.music.constants.AudioQuality
 import com.metrolist.music.utils.cipher.CipherDeobfuscator
-import com.metrolist.music.utils.YTPlayerUtils.MAIN_CLIENT
-import com.metrolist.music.utils.YTPlayerUtils.STREAM_FALLBACK_CLIENTS
-import com.metrolist.music.utils.YTPlayerUtils.validateStatus
 import com.metrolist.music.utils.potoken.PoTokenGenerator
 import com.metrolist.music.utils.potoken.PoTokenResult
 import com.metrolist.music.utils.sabr.EjsNTransformSolver
@@ -40,6 +37,8 @@ import timber.log.Timber
 object YTPlayerUtils {
     private const val logTag = "YTPlayerUtils"
     private const val TAG = "YTPlayerUtils"
+    private const val STREAM_VALIDATION_RANGE = "bytes=0-2047"
+    private const val STREAM_VALIDATION_SAMPLE_BYTES = 2048L
 
     private val httpClient = OkHttpClient.Builder()
         .proxy(YouTube.proxy)
@@ -565,15 +564,66 @@ object YTPlayerUtils {
                 println("[PLAYBACK_DEBUG] Added cookie to validation request")
             }
 
-            val response = httpClient.newCall(requestBuilder.build()).execute()
-            val isSuccessful = response.isSuccessful
-            Timber.tag(logTag).d("Stream URL validation result: ${if (isSuccessful) "Success" else "Failed"} (${response.code})")
-            return isSuccessful
+            httpClient.newCall(requestBuilder.build()).execute().use { response ->
+                if (!response.isSuccessful && response.code != 405) {
+                    Timber.tag(logTag).d("Stream URL HEAD validation failed (${response.code})")
+                    return false
+                }
+                if (looksLikeReloadPage(response)) {
+                    Timber.tag(logTag).d("Stream URL HEAD returned a reload page")
+                    return false
+                }
+            }
+
+            val rangeRequestBuilder =
+                okhttp3.Request
+                    .Builder()
+                    .url(url)
+                    .header("Range", STREAM_VALIDATION_RANGE)
+
+            YouTube.cookie?.let { cookie ->
+                rangeRequestBuilder.addHeader("Cookie", cookie)
+            }
+
+            httpClient.newCall(rangeRequestBuilder.build()).execute().use { response ->
+                val isSuccessful = response.isSuccessful
+                val isReloadPage = looksLikeReloadPage(response)
+                Timber.tag(logTag).d(
+                    "Stream URL validation result: " +
+                        "${if (isSuccessful && !isReloadPage) "Success" else "Failed"} (${response.code})",
+                )
+                return isSuccessful && !isReloadPage
+            }
         } catch (e: Exception) {
             Timber.tag(logTag).e(e, "Stream URL validation failed with exception")
             reportException(e)
         }
         return false
+    }
+
+    private fun looksLikeReloadPage(response: okhttp3.Response): Boolean {
+        val contentType = response.header("Content-Type")?.lowercase().orEmpty()
+        if (contentType.contains("text/html") || contentType.contains("text/plain")) {
+            return true
+        }
+
+        val body = response.body ?: return false
+        return runCatching {
+            val source = body.source()
+            source.request(STREAM_VALIDATION_SAMPLE_BYTES)
+            val buffer = source.buffer.clone()
+            val sample =
+                buffer
+                    .readString(
+                        minOf(buffer.size, STREAM_VALIDATION_SAMPLE_BYTES),
+                        Charsets.UTF_8,
+                    ).lowercase()
+            sample.contains("page needs to be reloaded") ||
+                sample.contains("page must be reloaded") ||
+                sample.contains("reload the page") ||
+                sample.contains("la pagina deve essere ricaricata") ||
+                sample.contains("pagina deve essere ricaricata")
+        }.getOrDefault(false)
     }
     data class SignatureTimestampResult(
         val timestamp: Int?,

@@ -2970,6 +2970,7 @@ class MusicService :
 
                 // Clear all caches including decryption caches
                 performAggressiveCacheClear(mediaId)
+                forceYtDlpFallbackForMediaIds.add(mediaId)
 
                 // Additional delay for page reload errors as they may be rate-limited
                 delay(RETRY_DELAY_MS * 2)
