@@ -7,10 +7,12 @@
 package com.metrolist.music.ui.theme
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -27,8 +29,10 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,18 +54,20 @@ object RetroTokens {
     val BorderMuted = Color(0xFF3F3F3F)
     val BorderDark = Color(0xFF222222)
 
-    val Text = Color(0xFFD0D0D0)
-    val TextSoft = Color(0xFFA0A0A0)
-    val TextMuted = Color(0xFF707070)
-    val TextDim = Color(0xFF4A4A4A)
+    val Text = Color(0xFFF1F1F1)
+    val TextSoft = Color(0xFFD0D0D0)
+    val TextMuted = Color(0xFFA0A0A0)
+    val TextDim = Color(0xFF707070)
     val TextHot = Color(0xFFF1F1F1)
 
-    // Monochrome pivot: accents are now grayscale/pale gray only
+    // Monochrome pivot: accents stay rare; semantic states remain distinguishable.
     val Magenta = Color(0xFFB8B8B8)
     val MagentaDim = Color(0xFF3F3F3F)
-    val Active = Color(0xFFD0D0D0)
-    val ActiveMuted = Color(0xFF707070)
-    val Warning = Color(0xFF707070)
+    val Active = Color(0xFFF1F1F1)
+    val ActiveMuted = Color(0xFFB8B8B8)
+    val Warning = Color(0xFFF2C94C)
+    val Error = Color(0xFFFF6B6B)
+    val Success = Color(0xFF7DDC8A)
 
     val Radius = 0.dp
     val BorderWidth = 1.dp
@@ -107,23 +113,35 @@ fun RetroButton(
     content: @Composable RowScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .height(32.dp)
-            .background(if (enabled) RetroTokens.Panel else RetroTokens.Background2)
+            .minimumInteractiveComponentSize()
+            .height(48.dp)
+            .background(
+                when {
+                    !enabled -> RetroTokens.Background2
+                    pressed -> RetroTokens.Panel3
+                    else -> RetroTokens.Panel
+                },
+            )
             .border(
                 RetroTokens.BorderWidth,
-                if (enabled) RetroTokens.Border else RetroTokens.BorderMuted,
+                when {
+                    !enabled -> RetroTokens.BorderMuted
+                    pressed -> RetroTokens.BorderBright
+                    else -> RetroTokens.Border
+                },
                 RoundedCornerShape(RetroTokens.Radius),
             )
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = onClick,
             )
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 12.dp),
         content = content,
     )
 }
@@ -158,25 +176,32 @@ fun RetroIconButton(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
+            .minimumInteractiveComponentSize()
             .background(
                 when {
                     selected -> RetroTokens.Panel2
+                    pressed -> RetroTokens.Panel3
                     enabled -> RetroTokens.Panel
                     else -> RetroTokens.Background2
                 },
             )
             .border(
                 RetroTokens.BorderWidth,
-                if (selected) RetroTokens.ActiveMuted else RetroTokens.Border,
+                when {
+                    !enabled -> RetroTokens.BorderMuted
+                    selected || pressed -> RetroTokens.BorderBright
+                    else -> RetroTokens.Border
+                },
                 RoundedCornerShape(RetroTokens.Radius),
             )
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = onClick,
             ),
         content = content,
@@ -191,22 +216,28 @@ fun RetroToggle(
     enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(40.dp, 24.dp)
+            .minimumInteractiveComponentSize()
+            .size(48.dp, 32.dp)
             .background(
-                if (checked) RetroTokens.Panel2 else RetroTokens.Background,
+                when {
+                    pressed -> RetroTokens.Panel3
+                    checked -> RetroTokens.Panel2
+                    else -> RetroTokens.Background
+                },
             )
             .border(
                 RetroTokens.BorderWidth,
-                if (checked) RetroTokens.BorderBright else RetroTokens.BorderMuted,
+                if (checked || pressed) RetroTokens.BorderBright else RetroTokens.BorderMuted,
                 RoundedCornerShape(RetroTokens.Radius),
             )
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = null,
+                indication = LocalIndication.current,
                 onClick = { onCheckedChange(!checked) },
             ),
     ) {
@@ -226,14 +257,22 @@ fun RetroCheckbox(
     enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .size(24.dp)
-            .background(if (checked) RetroTokens.Panel2 else RetroTokens.Background)
+            .minimumInteractiveComponentSize()
+            .size(32.dp)
+            .background(
+                when {
+                    pressed -> RetroTokens.Panel3
+                    checked -> RetroTokens.Panel2
+                    else -> RetroTokens.Background
+                },
+            )
             .border(
                 RetroTokens.BorderWidth,
-                if (checked) RetroTokens.BorderBright else RetroTokens.BorderMuted,
+                if (checked || pressed) RetroTokens.BorderBright else RetroTokens.BorderMuted,
                 RoundedCornerShape(RetroTokens.Radius),
             )
             .then(
@@ -241,7 +280,7 @@ fun RetroCheckbox(
                     Modifier.clickable(
                         enabled = enabled,
                         interactionSource = interactionSource,
-                        indication = null,
+                        indication = LocalIndication.current,
                         onClick = { onCheckedChange(!checked) },
                     )
                 } else Modifier

@@ -9,7 +9,9 @@ package com.metrolist.music.ui.screens.library
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -54,27 +56,37 @@ fun LibraryScreen(navController: NavController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(36.dp)
+                .height(48.dp)
                 .background(RetroTokens.Background2)
                 .border(1.dp, RetroTokens.Border),
         ) {
             tabs.forEachIndexed { index, (value, label) ->
                 val isActive = filterType == value
+                val interactionSource = remember { MutableInteractionSource() }
+                val pressed by interactionSource.collectIsPressedAsState()
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .background(if (isActive) RetroTokens.Panel2 else Color.Transparent)
+                        .background(
+                            when {
+                                isActive -> RetroTokens.Panel2
+                                pressed -> RetroTokens.Panel
+                                else -> Color.Transparent
+                            },
+                        )
                         .border(
                             width = 1.dp,
-                            color = if (isActive) RetroTokens.BorderBright else Color.Transparent,
+                            color = if (isActive || pressed) RetroTokens.BorderBright else Color.Transparent,
                         )
                         .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
+                            interactionSource = interactionSource,
+                            indication = LocalIndication.current,
                             onClick = {
-                                filterType = if (filterType == value) LibraryFilter.LIBRARY else value
+                                if (filterType != value) {
+                                    filterType = value
+                                }
                             },
                         )
                         .padding(horizontal = 4.dp),
@@ -103,22 +115,10 @@ fun LibraryScreen(navController: NavController) {
         when (filterType) {
             LibraryFilter.LIBRARY -> LibraryMixScreen(navController, filterContent)
             LibraryFilter.PLAYLISTS -> LibraryPlaylistsScreen(navController, filterContent)
-            LibraryFilter.SONGS -> LibrarySongsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
-            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
-            LibraryFilter.ARTISTS -> LibraryArtistsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
-            LibraryFilter.PODCASTS -> LibraryPodcastsScreen(
-                navController,
-                { filterType = LibraryFilter.LIBRARY },
-            )
+            LibraryFilter.SONGS -> LibrarySongsScreen(navController, filterContent)
+            LibraryFilter.ALBUMS -> LibraryAlbumsScreen(navController, filterContent)
+            LibraryFilter.ARTISTS -> LibraryArtistsScreen(navController, filterContent)
+            LibraryFilter.PODCASTS -> LibraryPodcastsScreen(navController, filterContent)
         }
     }
 }

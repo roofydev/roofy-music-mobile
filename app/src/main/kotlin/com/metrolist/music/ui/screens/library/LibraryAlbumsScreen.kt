@@ -91,7 +91,6 @@ import com.metrolist.music.ui.component.LibrarySearchHeader
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.AlbumMenu
-import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -105,7 +104,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibraryAlbumsScreen(
     navController: NavController,
-    onDeselect: () -> Unit,
+    filterContent: @Composable () -> Unit,
     viewModel: LibraryAlbumsViewModel = hiltViewModel(),
 ) {
     val menuState = LocalMenuState.current
@@ -129,27 +128,19 @@ fun LibraryAlbumsScreen(
     val (ytmSync) = rememberPreference(YtmSyncKey, true)
     val hideExplicit by rememberPreference(key = HideExplicitKey, defaultValue = false)
 
-    val filterContent = @Composable {
-        Row {
-            Spacer(Modifier.width(12.dp))
-            RetroTextButton(
-                text = stringResource(R.string.albums).uppercase(),
-                onClick = onDeselect,
-            )
-            ChipsRow(
-                chips =
-                    listOf(
-                        AlbumFilter.LIKED to stringResource(R.string.filter_liked),
-                        AlbumFilter.LIBRARY to stringResource(R.string.filter_library),
-                        AlbumFilter.UPLOADED to stringResource(R.string.filter_uploaded),
-                    ),
-                currentValue = filter,
-                onValueUpdate = {
-                    filter = it
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
+    val subFilterContent = @Composable {
+        ChipsRow(
+            chips =
+                listOf(
+                    AlbumFilter.LIKED to stringResource(R.string.filter_liked),
+                    AlbumFilter.LIBRARY to stringResource(R.string.filter_library),
+                    AlbumFilter.UPLOADED to stringResource(R.string.filter_uploaded),
+                ),
+            currentValue = filter,
+            onValueUpdate = {
+                filter = it
+            },
+        )
     }
 
     LaunchedEffect(Unit) {
@@ -275,7 +266,10 @@ fun LibraryAlbumsScreen(
                         key = "filter",
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
-                        filterContent()
+                        Column {
+                            filterContent()
+                            subFilterContent()
+                        }
                     }
 
                     item(
@@ -330,7 +324,10 @@ fun LibraryAlbumsScreen(
                         span = { GridItemSpan(maxLineSpan) },
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
-                        filterContent()
+                        Column {
+                            filterContent()
+                            subFilterContent()
+                        }
                     }
 
                     item(

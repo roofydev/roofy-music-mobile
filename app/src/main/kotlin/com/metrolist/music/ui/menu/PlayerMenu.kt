@@ -93,6 +93,8 @@ import com.metrolist.music.ui.devices.ListenOnSheet
 import com.metrolist.music.listentogether.ConnectionState
 import com.metrolist.music.listentogether.ListenTogetherEvent
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.device.DeviceSessionManager
+import com.metrolist.music.desktopimport.DesktopRemoteClient
 import com.metrolist.music.playback.ExoDownloadService
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SpeedDialItem
@@ -128,6 +130,15 @@ fun PlayerMenu(
     val database = LocalDatabase.current
     val playerConnection = LocalPlayerConnection.current ?: return
     val playerVolume = playerConnection.service.playerVolume.collectAsStateWithLifecycle()
+    val sessionUi by DeviceSessionManager.uiState.collectAsStateWithLifecycle()
+    val remoteState by DesktopRemoteClient.state.collectAsStateWithLifecycle()
+    val isControllingComputer = sessionUi.isComputerOutputSelected
+    var desktopVolumeSlider by remember(remoteState.volume) {
+        mutableFloatStateOf((remoteState.volume ?: DesktopRemoteClient.DEFAULT_VOLUME) / 100f)
+    }
+    LaunchedEffect(remoteState.volume) {
+        remoteState.volume?.let { desktopVolumeSlider = it / 100f }
+    }
 
     // Cast state for volume control - safely access castConnectionHandler to prevent crashes
     val castHandler =
@@ -309,14 +320,28 @@ fun PlayerMenu(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 VolumeSlider(
-                    value = if (isCasting) castVolume else playerVolume.value,
+                    value =
+                        when {
+                            isControllingComputer -> desktopVolumeSlider
+                            isCasting -> castVolume
+                            else -> playerVolume.value
+                        },
                     onValueChange = { volume ->
-                        if (isCasting) {
-                            castHandler?.setVolume(volume)
-                        } else {
-                            playerConnection.service.playerVolume.value = volume
+                        when {
+                            isControllingComputer -> desktopVolumeSlider = volume
+                            isCasting -> castHandler?.setVolume(volume)
+                            else -> playerConnection.service.playerVolume.value = volume
                         }
                     },
+                    onValueChangeFinished =
+                        if (isControllingComputer) {
+                            {
+                                DesktopRemoteClient.setVolume((desktopVolumeSlider * 100f).toInt())
+                            }
+                        } else {
+                            null
+                        },
+                    enabled = !isControllingComputer || remoteState.connected,
                     modifier = Modifier.weight(1f),
                     accentColor = MaterialTheme.colorScheme.primary,
                 )

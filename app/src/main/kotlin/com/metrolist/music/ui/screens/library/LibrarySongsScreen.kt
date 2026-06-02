@@ -96,7 +96,6 @@ import com.metrolist.music.ui.component.SortHeader
 import com.metrolist.music.ui.menu.SongMenu
 import com.metrolist.music.ui.utils.resize
 import com.metrolist.music.ui.theme.RetroIconButton
-import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroTokens
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -110,7 +109,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun LibrarySongsScreen(
     navController: NavController,
-    onDeselect: () -> Unit,
+    filterContent: @Composable () -> Unit,
     viewModel: LibrarySongsViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -371,12 +370,8 @@ fun LibrarySongsScreen(
                 key = "filter",
                 contentType = CONTENT_TYPE_HEADER,
             ) {
-                Row {
-                    Spacer(Modifier.width(12.dp))
-                    RetroTextButton(
-                        text = stringResource(R.string.songs).uppercase(),
-                        onClick = onDeselect,
-                    )
+                Column {
+                    filterContent()
                     ChipsRow(
                         chips =
                             listOf(
@@ -389,7 +384,6 @@ fun LibrarySongsScreen(
                         onValueUpdate = {
                             filter = it
                         },
-                        modifier = Modifier.weight(1f),
                     )
                 }
             }

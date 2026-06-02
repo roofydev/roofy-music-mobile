@@ -35,4 +35,15 @@ class DesktopRemoteClientTest {
     fun normalizeDurationToMs_acceptsMillisecondsFromDesktop() {
         assertEquals(215_000L, DesktopRemoteClient.normalizeDurationToMs(215_000.0))
     }
+
+    @Test
+    fun handleHardwareVolumeKey_ignoresNonVolumeKeys() {
+        assertEquals(
+            false,
+            DesktopRemoteClient.handleHardwareVolumeKey(
+                android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                android.view.KeyEvent.ACTION_DOWN,
+            ),
+        )
+    }
 }

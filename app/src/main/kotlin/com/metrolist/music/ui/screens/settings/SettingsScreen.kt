@@ -79,23 +79,18 @@ fun SettingsScreen(
         )
 
         Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_general),
+            title = stringResource(R.string.settings_section_account),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.language),
-                    title = { Text(stringResource(R.string.content)) },
-                    onClick = { navController.navigate("settings/content") }
+                    icon = painterResource(R.drawable.account),
+                    title = { Text(stringResource(R.string.account_settings)) },
+                    onClick = { navController.navigate("settings/account") }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.music_note),
-                    title = { Text(stringResource(R.string.lastfm_integration)) },
-                    onClick = { navController.navigate("settings/integrations/lastfm") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.sync),
-                    title = { Text(stringResource(R.string.my_computer)) },
-                    description = { Text(stringResource(R.string.my_computer_integration_desc)) },
-                    onClick = { navController.navigate("settings/integrations/my_computer") }
+                    icon = painterResource(R.drawable.library_music),
+                    title = { Text(stringResource(R.string.youtube_library)) },
+                    description = { Text(stringResource(R.string.youtube_library_desc)) },
+                    onClick = { navController.navigate("account") }
                 ),
             )
         )
@@ -121,8 +116,13 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_downloads_offline),
+            title = stringResource(R.string.settings_section_library_downloads),
             items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.language),
+                    title = { Text(stringResource(R.string.content)) },
+                    onClick = { navController.navigate("settings/content") }
+                ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.storage),
                     title = { Text(stringResource(R.string.storage)) },
@@ -152,12 +152,38 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Material3SettingsGroup(
-            title = stringResource(R.string.settings_section_discord),
+            title = stringResource(R.string.settings_section_devices_integrations),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.discord),
-                    title = { Text(stringResource(R.string.discord_status_title)) },
-                    onClick = { navController.navigate("settings/integrations/discord") }
+                    icon = painterResource(R.drawable.integration),
+                    title = { Text(stringResource(R.string.integrations)) },
+                    description = { Text(stringResource(R.string.settings_integrations_desc)) },
+                    onClick = { navController.navigate("settings/integrations") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.sync),
+                    title = { Text(stringResource(R.string.my_computer)) },
+                    description = { Text(stringResource(R.string.my_computer_integration_desc)) },
+                    onClick = { navController.navigate("settings/integrations/my_computer") }
+                ),
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.group_outlined),
+                    title = { Text(stringResource(R.string.listen_together)) },
+                    description = { Text(stringResource(R.string.listen_together_description)) },
+                    onClick = { navController.navigate("settings/integrations/listen_together") }
+                ),
+            )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_privacy),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.security),
+                    title = { Text(stringResource(R.string.privacy)) },
+                    onClick = { navController.navigate("settings/privacy") }
                 ),
             )
         )
@@ -167,13 +193,6 @@ fun SettingsScreen(
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_advanced),
             items = buildList {
-                add(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.security),
-                        title = { Text(stringResource(R.string.privacy)) },
-                        onClick = { navController.navigate("settings/privacy") }
-                    )
-                )
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.music_note),
@@ -236,6 +255,14 @@ fun SettingsScreen(
                         )
                     )
                 }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_about),
+            items = buildList {
                 if (BuildConfig.UPDATER_AVAILABLE) {
                     add(
                         Material3SettingsItem(

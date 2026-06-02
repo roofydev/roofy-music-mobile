@@ -7,7 +7,9 @@
 package com.metrolist.music.desktopimport
 
 import android.net.Uri
+import android.view.KeyEvent
 import androidx.core.net.toUri
+import com.metrolist.music.device.DeviceSessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -61,6 +63,8 @@ data class DesktopRemoteState(
 }
 
 object DesktopRemoteClient {
+    const val DEFAULT_VOLUME = 80
+    private const val HARDWARE_VOLUME_STEP = 5
     private val client =
         OkHttpClient
             .Builder()
@@ -295,7 +299,34 @@ object DesktopRemoteClient {
     }
 
     fun setVolume(volume: Int) {
-        send(JSONObject().put("event", "volume").put("volume", volume.coerceIn(0, 100)))
+        val clamped = volume.coerceIn(0, 100)
+        mutableState.update { it.copy(volume = clamped) }
+        if (mutableState.value.connected) {
+            send(JSONObject().put("event", "volume").put("volume", clamped))
+        }
+    }
+
+    fun adjustVolumeBy(delta: Int) {
+        val current = mutableState.value.volume ?: DEFAULT_VOLUME
+        setVolume(current + delta)
+    }
+
+    fun handleHardwareVolumeKey(
+        keyCode: Int,
+        action: Int,
+    ): Boolean {
+        if (action != KeyEvent.ACTION_DOWN) return false
+        if (!DeviceSessionManager.isComputerOutputSelected() || !mutableState.value.connected) {
+            return false
+        }
+        val delta =
+            when (keyCode) {
+                KeyEvent.KEYCODE_VOLUME_UP -> HARDWARE_VOLUME_STEP
+                KeyEvent.KEYCODE_VOLUME_DOWN -> -HARDWARE_VOLUME_STEP
+                else -> return false
+            }
+        adjustVolumeBy(delta)
+        return true
     }
 
     /** Ask the desktop to fetch artwork and return it as a base64 data URI (same as the web remote). */
