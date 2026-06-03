@@ -435,10 +435,23 @@ class MusicService :
     @Volatile
     private var cachedAutoLoadMore = true
 
+    private data class StreamUrlCacheEntry(
+        val url: String,
+        val expiresAt: Long,
+        val requestHeaders: Map<String, String>,
+    )
+
     // URL cache for stream URLs - class-level so it can be invalidated on errors
     private val songUrlCache = Collections.synchronizedMap(
-        object : LinkedHashMap<String, Pair<String, Long>>(0, 0.75f, true) {
-            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<String, Long>>): Boolean {
+        object : LinkedHashMap<String, StreamUrlCacheEntry>(0, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, StreamUrlCacheEntry>): Boolean {
+                return size > 500
+            }
+        }
+    )
+    private val streamRequestHeadersByUrl = Collections.synchronizedMap(
+        object : LinkedHashMap<String, StreamUrlCacheEntry>(0, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, StreamUrlCacheEntry>): Boolean {
                 return size > 500
             }
         }
@@ -3146,6 +3159,27 @@ class MusicService :
                                 OkHttpClient
                                     .Builder()
                                     .proxy(YouTube.proxy)
+                                    .addInterceptor { chain ->
+                                        val request = chain.request()
+                                        val host = request.url.host
+                                        val isYouTubeStream =
+                                            host.contains("googlevideo", ignoreCase = true) ||
+                                                host.contains("youtube", ignoreCase = true)
+                                        if (isYouTubeStream) {
+                                            val headers = streamRequestHeadersForUrl(request.url.toString())
+                                            val requestWithHeaders =
+                                                request
+                                                    .newBuilder()
+                                                    .apply {
+                                                        headers.forEach { (name, value) ->
+                                                            header(name, value)
+                                                        }
+                                                    }.build()
+                                            chain.proceed(requestWithHeaders)
+                                        } else {
+                                            chain.proceed(request)
+                                        }
+                                    }
                                     .proxyAuthenticator { _, response ->
                                         YouTube.proxyAuth?.let { auth ->
                                             response.request
@@ -3159,6 +3193,29 @@ class MusicService :
                     ),
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+
+    private fun cacheStreamRequestHeaders(
+        streamUrl: String,
+        requestHeaders: Map<String, String>,
+        expiresAt: Long,
+    ) {
+        streamRequestHeadersByUrl[streamUrl] =
+            StreamUrlCacheEntry(
+                url = streamUrl,
+                expiresAt = expiresAt,
+                requestHeaders = requestHeaders,
+            )
+    }
+
+    private fun streamRequestHeadersForUrl(streamUrl: String): Map<String, String> {
+        val now = System.currentTimeMillis()
+        streamRequestHeadersByUrl[streamUrl]
+            ?.takeIf { it.expiresAt > now }
+            ?.let { return it.requestHeaders }
+
+        streamRequestHeadersByUrl.remove(streamUrl)
+        return YTPlayerUtils.streamRequestHeaders()
+    }
 
     // Flag to prevent queue saving during silence skip operations
     private var isSilenceSkipping = false
@@ -3273,9 +3330,10 @@ class MusicService :
                     return@Factory dataSpec
                 }
 
-                songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
+                songUrlCache[mediaId]?.takeIf { it.expiresAt > System.currentTimeMillis() }?.let {
                     scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
-                    return@Factory dataSpec.withUri(it.first.toUri())
+                    cacheStreamRequestHeaders(it.url, it.requestHeaders, it.expiresAt)
+                    return@Factory dataSpec.withUri(it.url.toUri())
                 }
             } else {
                 Timber.tag("MusicService").i("BYPASSING CACHE for $mediaId due to quality change")
@@ -3377,9 +3435,16 @@ class MusicService :
                 }
 
                 val streamUrl = nonNullPlayback.streamUrl
+                val streamUrlExpiresAt =
+                    System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
 
                 songUrlCache[mediaId] =
-                    streamUrl to System.currentTimeMillis() + (nonNullPlayback.streamExpiresInSeconds * 1000L)
+                    StreamUrlCacheEntry(
+                        url = streamUrl,
+                        expiresAt = streamUrlExpiresAt,
+                        requestHeaders = nonNullPlayback.requestHeaders,
+                    )
+                cacheStreamRequestHeaders(streamUrl, nonNullPlayback.requestHeaders, streamUrlExpiresAt)
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
             }
         }

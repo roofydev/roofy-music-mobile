@@ -70,6 +70,7 @@ object YTPlayerUtils {
         val format: PlayerResponse.StreamingData.Format,
         val streamUrl: String,
         val streamExpiresInSeconds: Int,
+        val requestHeaders: Map<String, String> = streamRequestHeaders(),
     )
     /**
      * Custom player response intended to use for playback.
@@ -172,6 +173,7 @@ object YTPlayerUtils {
         var format: PlayerResponse.StreamingData.Format? = null
         var streamUrl: String? = null
         var streamExpiresInSeconds: Int? = null
+        var requestHeadersForStream: Map<String, String>? = null
         var streamPlayerResponse: PlayerResponse? = null
         val retryMainPlayerResponse: PlayerResponse? = if (usedAgeRestrictedClient != null) mainPlayerResponse else null
 
@@ -277,6 +279,7 @@ object YTPlayerUtils {
                 } else {
                     STREAM_FALLBACK_CLIENTS[clientIndex]
                 }
+                requestHeadersForStream = streamRequestHeaders(currentClient)
 
                 val musicVideoType = streamPlayerResponse.videoDetails?.musicVideoType
 
@@ -348,7 +351,7 @@ object YTPlayerUtils {
                     break
                 }
 
-                if (validateStatus(streamUrl)) {
+                if (validateStatus(streamUrl, requestHeadersForStream.orEmpty())) {
                     // working stream found
                     Timber.tag(logTag).d("Stream validated successfully with client: ${currentClient.clientName}")
                     // Log for release builds
@@ -426,6 +429,7 @@ object YTPlayerUtils {
             format,
             streamUrl,
             streamExpiresInSeconds,
+            requestHeadersForStream.orEmpty(),
         )
     }.onFailure { e ->
         println("[PLAYBACK_DEBUG] EXCEPTION during playback for videoId=$videoId: ${e::class.simpleName}: ${e.message}")
@@ -457,6 +461,7 @@ object YTPlayerUtils {
                 format = it.format,
                 streamUrl = it.streamUrl,
                 streamExpiresInSeconds = it.streamExpiresInSeconds,
+                requestHeaders = it.requestHeaders,
             )
         }
     }
@@ -557,18 +562,29 @@ object YTPlayerUtils {
      * If this returns true the url is likely to work.
      * If this returns false the url might cause an error during playback.
      */
-    private fun validateStatus(url: String): Boolean {
+    fun streamRequestHeaders(client: YouTubeClient = MAIN_CLIENT): Map<String, String> =
+        buildMap {
+            put("User-Agent", client.userAgent)
+            put("Accept", "*/*")
+            put("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+            put("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+            YouTube.cookie?.takeIf { it.isNotBlank() }?.let { put("Cookie", it) }
+        }
+
+    private fun okhttp3.Request.Builder.applyHeaders(headers: Map<String, String>): okhttp3.Request.Builder =
+        apply {
+            headers.forEach { (name, value) ->
+                header(name, value)
+            }
+        }
+
+    private fun validateStatus(url: String, headers: Map<String, String>): Boolean {
         Timber.tag(logTag).d("Validating stream URL status")
         try {
             val requestBuilder = okhttp3.Request.Builder()
                 .head()
                 .url(url)
-
-            // Add authentication cookie for privately owned tracks
-            YouTube.cookie?.let { cookie ->
-                requestBuilder.addHeader("Cookie", cookie)
-                println("[PLAYBACK_DEBUG] Added cookie to validation request")
-            }
+                .applyHeaders(headers)
 
             httpClient.newCall(requestBuilder.build()).execute().use { response ->
                 if (!response.isSuccessful && response.code != 405) {
@@ -586,10 +602,7 @@ object YTPlayerUtils {
                     .Builder()
                     .url(url)
                     .header("Range", STREAM_VALIDATION_RANGE)
-
-            YouTube.cookie?.let { cookie ->
-                rangeRequestBuilder.addHeader("Cookie", cookie)
-            }
+                    .applyHeaders(headers)
 
             httpClient.newCall(rangeRequestBuilder.build()).execute().use { response ->
                 val isSuccessful = response.isSuccessful

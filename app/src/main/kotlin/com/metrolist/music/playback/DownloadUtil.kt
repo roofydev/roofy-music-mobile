@@ -44,6 +44,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.time.LocalDateTime
+import java.util.Collections
 import java.util.concurrent.Executor
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -61,7 +62,19 @@ constructor(
     private val TAG = "DownloadUtil"
     private val connectivityManager = context.getSystemService<ConnectivityManager>()!!
     private val audioQuality by enumPreference(context, AudioQualityKey, AudioQuality.AUTO)
-    private val songUrlCache = HashMap<String, Pair<String, Long>>()
+    private data class StreamUrlCacheEntry(
+        val url: String,
+        val expiresAt: Long,
+        val requestHeaders: Map<String, String>,
+    )
+    private val songUrlCache = HashMap<String, StreamUrlCacheEntry>()
+    private val streamRequestHeadersByUrl = Collections.synchronizedMap(
+        object : LinkedHashMap<String, StreamUrlCacheEntry>(0, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, StreamUrlCacheEntry>): Boolean {
+                return size > 500
+            }
+        }
+    )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -76,6 +89,27 @@ constructor(
                     OkHttpDataSource.Factory(
                         OkHttpClient.Builder()
                             .proxy(YouTube.proxy)
+                            .addInterceptor { chain ->
+                                val request = chain.request()
+                                val host = request.url.host
+                                val isYouTubeStream =
+                                    host.contains("googlevideo", ignoreCase = true) ||
+                                        host.contains("youtube", ignoreCase = true)
+                                if (isYouTubeStream) {
+                                    val headers = streamRequestHeadersForUrl(request.url.toString())
+                                    val requestWithHeaders =
+                                        request
+                                            .newBuilder()
+                                            .apply {
+                                                headers.forEach { (name, value) ->
+                                                    header(name, value)
+                                                }
+                                            }.build()
+                                    chain.proceed(requestWithHeaders)
+                                } else {
+                                    chain.proceed(request)
+                                }
+                            }
                             .proxyAuthenticator { _, response ->
                                 YouTube.proxyAuth?.let { auth ->
                                     response.request.newBuilder()
@@ -94,8 +128,9 @@ constructor(
                 return@Factory dataSpec
             }
 
-            songUrlCache[mediaId]?.takeIf { it.second > System.currentTimeMillis() }?.let {
-                return@Factory dataSpec.withUri(it.first.toUri())
+            songUrlCache[mediaId]?.takeIf { it.expiresAt > System.currentTimeMillis() }?.let {
+                cacheStreamRequestHeaders(it.url, it.requestHeaders, it.expiresAt)
+                return@Factory dataSpec.withUri(it.url.toUri())
             }
 
             val playbackData = runBlocking(Dispatchers.IO) {
@@ -152,9 +187,41 @@ constructor(
                 } ?: playbackData.streamUrl
 
             songUrlCache[mediaId] =
-                streamUrl to System.currentTimeMillis() + playbackData.streamExpiresInSeconds * 1000L
+                StreamUrlCacheEntry(
+                    url = streamUrl,
+                    expiresAt = System.currentTimeMillis() + playbackData.streamExpiresInSeconds * 1000L,
+                    requestHeaders = playbackData.requestHeaders,
+                )
+            cacheStreamRequestHeaders(
+                streamUrl,
+                playbackData.requestHeaders,
+                System.currentTimeMillis() + playbackData.streamExpiresInSeconds * 1000L,
+            )
             dataSpec.withUri(streamUrl.toUri())
         }
+
+    private fun cacheStreamRequestHeaders(
+        streamUrl: String,
+        requestHeaders: Map<String, String>,
+        expiresAt: Long,
+    ) {
+        streamRequestHeadersByUrl[streamUrl] =
+            StreamUrlCacheEntry(
+                url = streamUrl,
+                expiresAt = expiresAt,
+                requestHeaders = requestHeaders,
+            )
+    }
+
+    private fun streamRequestHeadersForUrl(streamUrl: String): Map<String, String> {
+        val now = System.currentTimeMillis()
+        streamRequestHeadersByUrl[streamUrl]
+            ?.takeIf { it.expiresAt > now }
+            ?.let { return it.requestHeaders }
+
+        streamRequestHeadersByUrl.remove(streamUrl)
+        return YTPlayerUtils.streamRequestHeaders()
+    }
 
     val downloadNotificationHelper =
         DownloadNotificationHelper(context, ExoDownloadService.CHANNEL_ID)

@@ -49,6 +49,7 @@ object YtDlpStreamFallback {
         val format: PlayerResponse.StreamingData.Format,
         val streamUrl: String,
         val streamExpiresInSeconds: Int,
+        val requestHeaders: Map<String, String> = YTPlayerUtils.streamRequestHeaders(),
     )
 
     fun setContext(context: Context) {
@@ -85,7 +86,9 @@ object YtDlpStreamFallback {
                     ?: selectedFormat(info)?.url?.takeIf { it.isNotBlank() }
                     ?: throw YoutubeDLException("yt-dlp did not return a playable stream URL")
 
-                if (!validateStreamUrl(streamUrl)) {
+                val requestHeaders = YTPlayerUtils.streamRequestHeaders()
+
+                if (!validateStreamUrl(streamUrl, requestHeaders)) {
                     throw YoutubeDLException("yt-dlp stream URL failed validation")
                 }
 
@@ -103,6 +106,7 @@ object YtDlpStreamFallback {
                     format = format,
                     streamUrl = streamUrl,
                     streamExpiresInSeconds = expiresInSeconds,
+                    requestHeaders = requestHeaders,
                 )
             }.onFailure { error ->
                 Timber.tag(TAG).w(error, "yt-dlp fallback failed")
@@ -236,8 +240,18 @@ object YtDlpStreamFallback {
             ?: DEFAULT_EXPIRES_IN_SECONDS
     }
 
-    private fun validateStreamUrl(streamUrl: String): Boolean {
-        val headRequest = Request.Builder().head().url(streamUrl).build()
+    private fun Request.Builder.applyHeaders(headers: Map<String, String>): Request.Builder =
+        apply {
+            headers.forEach { (name, value) ->
+                header(name, value)
+            }
+        }
+
+    private fun validateStreamUrl(
+        streamUrl: String,
+        headers: Map<String, String>,
+    ): Boolean {
+        val headRequest = Request.Builder().head().url(streamUrl).applyHeaders(headers).build()
         try {
             httpClient.newCall(headRequest).execute().use { response ->
                 if (!response.isSuccessful && response.code != 405) return false
@@ -251,6 +265,7 @@ object YtDlpStreamFallback {
             Request.Builder()
                 .url(streamUrl)
                 .header("Range", STREAM_VALIDATION_RANGE)
+                .applyHeaders(headers)
                 .build()
         return try {
             httpClient.newCall(rangeRequest).execute().use { response ->
