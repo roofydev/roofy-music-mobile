@@ -64,6 +64,24 @@ object YTPlayerUtils {
         WEB_CREATOR
     )
 
+    /**
+     * Clients whose stream URLs come from a web / PoToken playback context. Their googlevideo URLs
+     * are gated by a valid `pot=` token: they pass a small range probe during validation but
+     * YouTube rejects later range requests mid-playback with "The page needs to be reloaded."
+     * Native clients (ANDROID_VR, IOS, IPADOS, ANDROID, ANDROID_CREATOR) return PoToken-free direct
+     * URLs that play in full, so their stream URLs must never be replaced with web-context URLs.
+     */
+    private val WEB_STREAM_CLIENT_NAMES = setOf(
+        "WEB",
+        "WEB_REMIX",
+        "WEB_CREATOR",
+        "TVHTML5",
+        "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+    )
+
+    private fun YouTubeClient.usesWebStreamContext(): Boolean =
+        useWebPoTokens || clientName in WEB_STREAM_CLIENT_NAMES
+
     private val AGE_RESTRICTED_STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
         TVHTML5_SIMPLY_EMBEDDED_PLAYER,  // Try embedded player first for age-restricted content
         TVHTML5,
@@ -266,9 +284,18 @@ object YTPlayerUtils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 Timber.tag(logTag).d("Player response status OK for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else streamFallbackClients[clientIndex].clientName}")
 
-                // Skip NewPipe for age-restricted content (NewPipe doesn't use our auth)
-                val responseToUse = if (wasOriginallyAgeRestricted) {
-                    Timber.tag(logTag).d("Skipping NewPipe for age-restricted content")
+                // NewPipe re-extracts stream URLs from the web player; those URLs are PoToken-gated
+                // and would overwrite the chosen client's formats by itag. Only let it touch
+                // web-context clients that genuinely need cipher/throttle handling. Native clients
+                // (ANDROID_VR, IOS, ...) must keep their own PoToken-free direct URLs, otherwise
+                // playback fails mid-stream with "The page needs to be reloaded."
+                val usesWebStreams = client.usesWebStreamContext()
+                val responseToUse = if (wasOriginallyAgeRestricted || !usesWebStreams) {
+                    if (wasOriginallyAgeRestricted) {
+                        Timber.tag(logTag).d("Skipping NewPipe for age-restricted content")
+                    } else {
+                        Timber.tag(logTag).d("Skipping NewPipe for native client ${client.clientName}; using its direct stream URLs")
+                    }
                     streamPlayerResponse
                 } else {
                     // Try to get streams using newPipePlayer method
@@ -290,7 +317,7 @@ object YTPlayerUtils {
 
                 Timber.tag(logTag).d("Format found: ${format.mimeType}, bitrate: ${format.bitrate}")
 
-                streamUrl = findUrlOrNull(format, videoId, responseToUse, skipNewPipe = wasOriginallyAgeRestricted)
+                streamUrl = findUrlOrNull(format, videoId, responseToUse, skipNewPipe = wasOriginallyAgeRestricted || !usesWebStreams)
                 if (streamUrl == null) {
                     Timber.tag(logTag).d("Stream URL not found for format")
                     continue
