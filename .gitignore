@@ -58,6 +58,7 @@ captures/
 *.p12
 *.pfx
 .tmp-signing/
+.local-github-release-worktree/
 app/persistent-debug.keystore
 # ^^^ think twice before removing this gitignore, it became so FUCKING
 # annoying to unstage this file every time i want to commit stuff

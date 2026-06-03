@@ -51,17 +51,31 @@ object YTPlayerUtils {
     private val MAIN_CLIENT: YouTubeClient = WEB_REMIX
 
     private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
-        TVHTML5_SIMPLY_EMBEDDED_PLAYER,  // Try embedded player first for age-restricted content
-        TVHTML5,
         ANDROID_VR_1_43_32,
         ANDROID_VR_1_61_48,
-        ANDROID_CREATOR,
-        IPADOS,
         ANDROID_VR_NO_AUTH,
+        IOS,
+        IPADOS,
+        MOBILE,
+        ANDROID_CREATOR,
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,
+        TVHTML5,
+        WEB,
+        WEB_CREATOR
+    )
+
+    private val AGE_RESTRICTED_STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
+        TVHTML5_SIMPLY_EMBEDDED_PLAYER,  // Try embedded player first for age-restricted content
+        TVHTML5,
+        WEB_CREATOR,
+        ANDROID_CREATOR,
+        ANDROID_VR_1_43_32,
+        ANDROID_VR_1_61_48,
+        ANDROID_VR_NO_AUTH,
+        IPADOS,
         MOBILE,
         IOS,
         WEB,
-        WEB_CREATOR
     )
     data class PlaybackData(
         val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
@@ -199,14 +213,23 @@ object YTPlayerUtils {
                 .i("Age-restricted content detected: videoId=$videoId, status=$currentStatus")
         }
 
-        // For age-restricted: skip main client, start with fallbacks
-        // For normal content: standard order
+        val streamFallbackClients =
+            if (isAgeRestricted) {
+                AGE_RESTRICTED_STREAM_FALLBACK_CLIENTS
+            } else {
+                STREAM_FALLBACK_CLIENTS
+            }
+
+        // For normal catalog playback, prefer native clients over WEB_REMIX streams. WEB_REMIX
+        // metadata is still used above, but its stream URLs are more likely to be rejected with
+        // "page needs to be reloaded" when the PoToken/web playback context is not accepted.
         val startIndex = when {
             isAgeRestricted -> 0
-            else -> -1
+            isUploadedTrack -> -1
+            else -> 0
         }
 
-        for (clientIndex in (startIndex until STREAM_FALLBACK_CLIENTS.size)) {
+        for (clientIndex in (startIndex until streamFallbackClients.size)) {
             // reset for each client
             format = null
             streamUrl = null
@@ -221,8 +244,8 @@ object YTPlayerUtils {
                 Timber.tag(logTag).d("Trying stream from MAIN_CLIENT: ${client.clientName}")
             } else {
                 // after main client use fallback clients
-                client = STREAM_FALLBACK_CLIENTS[clientIndex]
-                Timber.tag(logTag).d("Trying fallback client ${clientIndex + 1}/${STREAM_FALLBACK_CLIENTS.size}: ${client.clientName}")
+                client = streamFallbackClients[clientIndex]
+                Timber.tag(logTag).d("Trying fallback client ${clientIndex + 1}/${streamFallbackClients.size}: ${client.clientName}")
 
                 if (client.loginRequired && !isLoggedIn && YouTube.cookie == null) {
                     // skip client if it requires login but user is not logged in
@@ -241,7 +264,7 @@ object YTPlayerUtils {
 
             // process current client response
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
-                Timber.tag(logTag).d("Player response status OK for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName}")
+                Timber.tag(logTag).d("Player response status OK for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else streamFallbackClients[clientIndex].clientName}")
 
                 // Skip NewPipe for age-restricted content (NewPipe doesn't use our auth)
                 val responseToUse = if (wasOriginallyAgeRestricted) {
@@ -261,7 +284,7 @@ object YTPlayerUtils {
                     )
 
                 if (format == null) {
-                    Timber.tag(logTag).d("No suitable format found for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName}")
+                    Timber.tag(logTag).d("No suitable format found for client: ${if (clientIndex == -1) MAIN_CLIENT.clientName else streamFallbackClients[clientIndex].clientName}")
                     continue
                 }
 
@@ -277,7 +300,7 @@ object YTPlayerUtils {
                 val currentClient = if (clientIndex == -1) {
                     usedAgeRestrictedClient ?: MAIN_CLIENT
                 } else {
-                    STREAM_FALLBACK_CLIENTS[clientIndex]
+                    streamFallbackClients[clientIndex]
                 }
                 requestHeadersForStream = streamRequestHeaders(currentClient)
 
@@ -343,9 +366,9 @@ object YTPlayerUtils {
 
                 Timber.tag(logTag).d("Stream expires in: $streamExpiresInSeconds seconds")
 
-                if (clientIndex == STREAM_FALLBACK_CLIENTS.size - 1) {
+                if (clientIndex == streamFallbackClients.size - 1) {
                     /** skip [validateStatus] for last client */
-                    Timber.tag(logTag).d("Using last fallback client without validation: ${STREAM_FALLBACK_CLIENTS[clientIndex].clientName}")
+                    Timber.tag(logTag).d("Using last fallback client without validation: ${streamFallbackClients[clientIndex].clientName}")
                     Timber.tag(TAG)
                         .i("Playback: client=${currentClient.clientName}, videoId=$videoId")
                     break
@@ -566,9 +589,22 @@ object YTPlayerUtils {
         buildMap {
             put("User-Agent", client.userAgent)
             put("Accept", "*/*")
-            put("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
-            put("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
-            YouTube.cookie?.takeIf { it.isNotBlank() }?.let { put("Cookie", it) }
+
+            val usesBrowserPlaybackContext =
+                client.useWebPoTokens ||
+                    client.clientName in listOf(
+                        "WEB",
+                        "WEB_REMIX",
+                        "WEB_CREATOR",
+                        "TVHTML5",
+                        "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+                    )
+
+            if (usesBrowserPlaybackContext) {
+                put("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
+                put("Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
+                YouTube.cookie?.takeIf { it.isNotBlank() }?.let { put("Cookie", it) }
+            }
         }
 
     private fun okhttp3.Request.Builder.applyHeaders(headers: Map<String, String>): okhttp3.Request.Builder =
