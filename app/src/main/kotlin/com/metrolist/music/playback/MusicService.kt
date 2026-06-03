@@ -188,6 +188,7 @@ import com.metrolist.music.constants.LoudnessLevelKey
 import com.metrolist.music.utils.CoilBitmapLoader
 import com.metrolist.music.utils.DiscordRPC
 import com.metrolist.music.utils.NetworkConnectivityObserver
+import com.metrolist.music.utils.PlaybackDiagnostics
 import com.metrolist.music.utils.ScrobbleManager
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.YTPlayerUtils
@@ -3165,20 +3166,21 @@ class MusicService :
                                         val isYouTubeStream =
                                             host.contains("googlevideo", ignoreCase = true) ||
                                                 host.contains("youtube", ignoreCase = true)
-                                        if (isYouTubeStream) {
-                                            val headers = streamRequestHeadersForUrl(request.url.toString())
-                                            val requestWithHeaders =
-                                                request
-                                                    .newBuilder()
-                                                    .apply {
-                                                        headers.forEach { (name, value) ->
-                                                            header(name, value)
-                                                        }
-                                                    }.build()
-                                            chain.proceed(requestWithHeaders)
-                                        } else {
-                                            chain.proceed(request)
+                                        if (!isYouTubeStream) {
+                                            return@addInterceptor chain.proceed(request)
                                         }
+                                        val headers = streamRequestHeadersForUrl(request.url.toString())
+                                        val requestWithHeaders =
+                                            request
+                                                .newBuilder()
+                                                .apply {
+                                                    headers.forEach { (name, value) ->
+                                                        header(name, value)
+                                                    }
+                                                }.build()
+                                        val response = chain.proceed(requestWithHeaders)
+                                        diagnoseStreamResponse(requestWithHeaders, response)
+                                        response
                                     }
                                     .proxyAuthenticator { _, response ->
                                         YouTube.proxyAuth?.let { auth ->
@@ -3193,6 +3195,44 @@ class MusicService :
                     ),
             ).setCacheWriteDataSinkFactory(null)
             .setFlags(FLAG_IGNORE_CACHE_ON_ERROR)
+
+    /**
+     * Release-visible diagnosis of the actual bytes Media3 receives from YouTube. Healthy audio
+     * chunks (2xx + audio/video content type) are ignored to avoid log spam; anything else — most
+     * importantly a text/html or text/plain "The page needs to be reloaded" body — is logged with
+     * a short sanitized sample under the [PlaybackDiagnostics.TAG] tag. Uses peekBody so the real
+     * response stream is never consumed.
+     */
+    private fun diagnoseStreamResponse(
+        request: okhttp3.Request,
+        response: okhttp3.Response,
+    ) {
+        try {
+            val code = response.code
+            val contentType = response.header("Content-Type")
+            val looksTextual = contentType?.startsWith("text/", ignoreCase = true) == true
+            val isOk = code in 200..299
+            if (isOk && !looksTextual) return
+
+            val sample =
+                runCatching {
+                    response
+                        .peekBody(512)
+                        .string()
+                        .replace(Regex("\\s+"), " ")
+                        .trim()
+                        .take(300)
+                }.getOrDefault("")
+
+            PlaybackDiagnostics.w(
+                "PLAYBACK response code=$code contentType=$contentType " +
+                    "range=${request.header("Range")} ua=${request.header("User-Agent")} " +
+                    "host=${PlaybackDiagnostics.host(request.url.toString())} bodySample=\"$sample\"",
+            )
+        } catch (e: Exception) {
+            PlaybackDiagnostics.e("diagnoseStreamResponse error: ${e.message}", e)
+        }
+    }
 
     private fun cacheStreamRequestHeaders(
         streamUrl: String,

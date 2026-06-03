@@ -8,7 +8,7 @@ import android.webkit.WebView
 import androidx.annotation.MainThread
 import androidx.collection.ArrayMap
 import com.metrolist.innertube.YouTube
-import com.metrolist.music.BuildConfig
+import com.metrolist.music.utils.PlaybackDiagnostics
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -65,6 +65,7 @@ class PoTokenWebView private constructor(
                 if (msg.contains("Uncaught")) {
                     val fmt = "\"$msg\", source: ${m.sourceId()} (${m.lineNumber()})"
                     val exception = BadWebViewException(fmt)
+                    PlaybackDiagnostics.e("PoToken WebView broken (uncaught JS): $fmt")
                     Timber.tag(TAG).e("This WebView implementation is broken: $fmt")
 
                     onInitializationErrorCloseAndCancel(exception)
@@ -130,9 +131,9 @@ class PoTokenWebView private constructor(
      */
     @JavascriptInterface
     fun onJsInitializationError(error: String) {
-        if (BuildConfig.DEBUG) {
-            Timber.tag(TAG).e("Initialization error from JavaScript: $error")
-        }
+        // Release-visible: BotGuard/PoToken JS failures are a prime suspect for "page needs to be
+        // reloaded" on fresh installs, so surface them even in non-debug builds.
+        PlaybackDiagnostics.e("PoToken JS initialization error: $error")
         onInitializationErrorCloseAndCancel(buildExceptionForJsError(error))
     }
 
@@ -224,9 +225,7 @@ class PoTokenWebView private constructor(
      */
     @JavascriptInterface
     fun onObtainPoTokenError(identifier: String, error: String) {
-        if (BuildConfig.DEBUG) {
-            Timber.tag(TAG).e("obtainPoToken error from JavaScript: $error")
-        }
+        PlaybackDiagnostics.e("PoToken obtain error (identifier=$identifier): $error")
         popPoTokenContinuation(identifier)?.resumeWithException(buildExceptionForJsError(error))
     }
 

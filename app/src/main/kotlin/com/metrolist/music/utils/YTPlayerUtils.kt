@@ -152,6 +152,16 @@ object YTPlayerUtils {
             }
         }
 
+        PlaybackDiagnostics.i(
+            "resolve videoId=$videoId loggedIn=$isLoggedIn " +
+                "sigTs=${signatureTimestamp.timestamp != null} " +
+                "visitorData=${!YouTube.visitorData.isNullOrBlank()} " +
+                "sessionId=${sessionId != null} " +
+                "poTokenPlayer=${poToken?.playerRequestPoToken != null} " +
+                "poTokenStreaming=${poToken?.streamingDataPoToken != null} " +
+                "uploaded=$isUploadedTrack preferYtDlp=$preferYtDlpFallback",
+        )
+
         // Try WEB_REMIX with signature timestamp and poToken (same as before)
         Timber.tag(logTag).d("Attempting to get player response using MAIN_CLIENT: ${MAIN_CLIENT.clientName}")
         var mainPlayerResponse =
@@ -398,6 +408,11 @@ object YTPlayerUtils {
                     Timber.tag(logTag).d("Using last fallback client without validation: ${streamFallbackClients[clientIndex].clientName}")
                     Timber.tag(TAG)
                         .i("Playback: client=${currentClient.clientName}, videoId=$videoId")
+                    PlaybackDiagnostics.w(
+                        "SELECTED (last client, NOT validated) client=${currentClient.clientName} " +
+                            "useWebPoTokens=${currentClient.useWebPoTokens} " +
+                            "host=${PlaybackDiagnostics.host(streamUrl)} pot=${streamUrl.contains("pot=")} videoId=$videoId",
+                    )
                     break
                 }
 
@@ -406,9 +421,18 @@ object YTPlayerUtils {
                     Timber.tag(logTag).d("Stream validated successfully with client: ${currentClient.clientName}")
                     // Log for release builds
                     Timber.tag(TAG).i("Playback: client=${currentClient.clientName}, videoId=$videoId")
+                    PlaybackDiagnostics.i(
+                        "SELECTED client=${currentClient.clientName} " +
+                            "useWebPoTokens=${currentClient.useWebPoTokens} " +
+                            "host=${PlaybackDiagnostics.host(streamUrl)} pot=${streamUrl.contains("pot=")} videoId=$videoId",
+                    )
                     break
                 } else {
                     Timber.tag(logTag).d("Stream validation failed for client: ${currentClient.clientName}")
+                    PlaybackDiagnostics.w(
+                        "validation FAILED client=${currentClient.clientName} " +
+                            "host=${PlaybackDiagnostics.host(streamUrl)} videoId=$videoId",
+                    )
                 }
             } else {
                 Timber.tag(logTag).d("Player response status not OK: ${streamPlayerResponse?.playabilityStatus?.status}, reason: ${streamPlayerResponse?.playabilityStatus?.reason}")
@@ -421,6 +445,7 @@ object YTPlayerUtils {
             streamUrl == null
         ) {
             Timber.tag(logTag).d("InnerTube clients did not produce a playable stream; trying yt-dlp fallback")
+            PlaybackDiagnostics.w("InnerTube clients produced no playable stream; attempting yt-dlp fallback for videoId=$videoId")
             tryYtDlpFallback(
                 videoId = videoId,
                 audioQuality = audioQuality,
@@ -433,6 +458,7 @@ object YTPlayerUtils {
 
         if (streamPlayerResponse == null) {
             Timber.tag(logTag).e("Bad stream player response - all clients failed")
+            PlaybackDiagnostics.e("FAILURE: all InnerTube clients + yt-dlp failed for videoId=$videoId")
             if (isUploadedTrack) {
                 println("[PLAYBACK_DEBUG] FAILURE: All clients failed for uploaded track videoId=$videoId")
             }
@@ -443,6 +469,7 @@ object YTPlayerUtils {
             val errorReason = streamPlayerResponse.playabilityStatus.reason
             // YouTube often surfaces generic reasons for restricted or unavailable streams.
             Timber.tag(logTag).e("Playability status not OK: $errorReason")
+            PlaybackDiagnostics.e("FAILURE: playability status=${streamPlayerResponse.playabilityStatus.status} reason=$errorReason videoId=$videoId")
             if (isUploadedTrack) {
                 println("[PLAYBACK_DEBUG] FAILURE: Playability not OK for uploaded track - status=${streamPlayerResponse.playabilityStatus.status}, reason=$errorReason")
             }
@@ -483,6 +510,7 @@ object YTPlayerUtils {
         )
     }.onFailure { e ->
         println("[PLAYBACK_DEBUG] EXCEPTION during playback for videoId=$videoId: ${e::class.simpleName}: ${e.message}")
+        PlaybackDiagnostics.e("resolve EXCEPTION videoId=$videoId: ${e::class.simpleName}: ${e.message}", e)
         e.printStackTrace()
     }
 
@@ -502,8 +530,13 @@ object YTPlayerUtils {
                     connectivityManager = connectivityManager,
                 ).getOrNull()
 
+        if (ytDlpPlaybackData == null) {
+            PlaybackDiagnostics.w("yt-dlp fallback did not resolve a stream for videoId=$videoId")
+        }
+
         return ytDlpPlaybackData?.let {
             Timber.tag(TAG).i("Playback: client=yt-dlp, videoId=$videoId")
+            PlaybackDiagnostics.i("SELECTED client=yt-dlp host=${PlaybackDiagnostics.host(it.streamUrl)} videoId=$videoId")
             PlaybackData(
                 audioConfig = audioConfig,
                 videoDetails = videoDetails,
@@ -652,10 +685,18 @@ object YTPlayerUtils {
             httpClient.newCall(requestBuilder.build()).execute().use { response ->
                 if (!response.isSuccessful && response.code != 405) {
                     Timber.tag(logTag).d("Stream URL HEAD validation failed (${response.code})")
+                    PlaybackDiagnostics.w(
+                        "validateStatus HEAD failed code=${response.code} " +
+                            "contentType=${response.header("Content-Type")} host=${PlaybackDiagnostics.host(url)}",
+                    )
                     return false
                 }
                 if (looksLikeReloadPage(response)) {
                     Timber.tag(logTag).d("Stream URL HEAD returned a reload page")
+                    PlaybackDiagnostics.w(
+                        "validateStatus HEAD returned RELOAD PAGE code=${response.code} " +
+                            "contentType=${response.header("Content-Type")} host=${PlaybackDiagnostics.host(url)}",
+                    )
                     return false
                 }
             }
@@ -674,10 +715,18 @@ object YTPlayerUtils {
                     "Stream URL validation result: " +
                         "${if (isSuccessful && !isReloadPage) "Success" else "Failed"} (${response.code})",
                 )
+                if (!isSuccessful || isReloadPage) {
+                    PlaybackDiagnostics.w(
+                        "validateStatus RANGE failed code=${response.code} " +
+                            "contentType=${response.header("Content-Type")} reloadPage=$isReloadPage " +
+                            "host=${PlaybackDiagnostics.host(url)}",
+                    )
+                }
                 return isSuccessful && !isReloadPage
             }
         } catch (e: Exception) {
             Timber.tag(logTag).e(e, "Stream URL validation failed with exception")
+            PlaybackDiagnostics.e("validateStatus EXCEPTION host=${PlaybackDiagnostics.host(url)}: ${e.message}", e)
             reportException(e)
         }
         return false
