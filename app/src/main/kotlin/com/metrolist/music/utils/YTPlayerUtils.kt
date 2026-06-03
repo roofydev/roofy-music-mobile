@@ -257,6 +257,20 @@ object YTPlayerUtils {
             else -> 0
         }
 
+        // When signed in, catalog stream URLs returned inside the authenticated session are bound to
+        // that session and rejected by googlevideo (403 / "page needs to be reloaded") unless a
+        // session PoToken is attached, which native clients can't provide. Resolve catalog streams
+        // in a logged-out context instead — this mirrors the known-good anonymous path. Uploaded
+        // (MLPT) and age-restricted content still require the authenticated session, so keep those.
+        val anonymousStreaming = isLoggedIn && !isUploadedTrack && !wasOriginallyAgeRestricted
+        val streamingVisitorData = if (anonymousStreaming) anonymousVisitorData() else null
+        if (anonymousStreaming) {
+            PlaybackDiagnostics.i(
+                "Anonymous stream resolution (signed in) videoId=$videoId " +
+                    "anonVisitorData=${streamingVisitorData != null}",
+            )
+        }
+
         for (clientIndex in (startIndex until streamFallbackClients.size)) {
             // reset for each client
             format = null
@@ -282,12 +296,25 @@ object YTPlayerUtils {
                 }
 
                 Timber.tag(logTag).d("Fetching player response for fallback client: ${client.clientName}")
-                // Only pass poToken for clients that support it
-                val clientPoToken = if (client.useWebPoTokens) poToken?.playerRequestPoToken else null
+                // Only pass poToken for clients that support it. In anonymous streaming mode the
+                // session-bound poToken doesn't match the logged-out visitorData, so omit it.
+                val clientPoToken = when {
+                    anonymousStreaming -> null
+                    client.useWebPoTokens -> poToken?.playerRequestPoToken
+                    else -> null
+                }
                 // Skip signature timestamp for age-restricted (faster), use it for normal content
                 val clientSigTimestamp = if (wasOriginallyAgeRestricted) null else signatureTimestamp.timestamp
                 streamPlayerResponse =
-                    YouTube.player(videoId, playlistId, client, clientSigTimestamp, clientPoToken).getOrNull()
+                    YouTube.player(
+                        videoId,
+                        playlistId,
+                        client,
+                        clientSigTimestamp,
+                        clientPoToken,
+                        setLogin = !anonymousStreaming,
+                        visitorDataOverride = streamingVisitorData,
+                    ).getOrNull()
             }
 
             // process current client response
@@ -797,6 +824,35 @@ object YTPlayerUtils {
                 }
                 .onFailure { error ->
                     Timber.tag(TAG).w(error, "Could not fetch visitorData before playback")
+                    reportException(error)
+                }
+                .getOrNull()
+        }
+    }
+
+    /**
+     * An anonymous (logged-out) visitorData used to resolve catalog streams while signed in.
+     * Fetched from the unauthenticated `sw.js_data` endpoint and cached for the process lifetime.
+     * Crucially this is NEVER written back to [YouTube.visitorData] so it can't pollute the
+     * authenticated session used for metadata/history.
+     */
+    @Volatile
+    private var cachedAnonymousVisitorData: String? = null
+    private val anonymousVisitorDataLock = Mutex()
+
+    private suspend fun anonymousVisitorData(): String? {
+        cachedAnonymousVisitorData?.takeIf { it.isNotBlank() && it != "null" }?.let { return it }
+
+        return anonymousVisitorDataLock.withLock {
+            cachedAnonymousVisitorData?.takeIf { it.isNotBlank() && it != "null" }?.let { return@withLock it }
+
+            YouTube.visitorData()
+                .onSuccess { visitorData ->
+                    cachedAnonymousVisitorData = visitorData
+                    Timber.tag(TAG).d("Fetched anonymous visitorData for logged-in stream resolution")
+                }
+                .onFailure { error ->
+                    Timber.tag(TAG).w(error, "Could not fetch anonymous visitorData")
                     reportException(error)
                 }
                 .getOrNull()

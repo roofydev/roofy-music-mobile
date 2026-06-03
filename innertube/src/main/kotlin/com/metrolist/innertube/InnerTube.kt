@@ -142,7 +142,11 @@ class InnerTube {
         }
     }
 
-    private fun HttpRequestBuilder.ytClient(client: YouTubeClient, setLogin: Boolean = false) {
+    private fun HttpRequestBuilder.ytClient(
+        client: YouTubeClient,
+        setLogin: Boolean = false,
+        visitorDataOverride: String? = null,
+    ) {
         contentType(ContentType.Application.Json)
         headers {
             append("X-Goog-Api-Format-Version", "1")
@@ -150,7 +154,7 @@ class InnerTube {
             append("X-YouTube-Client-Version", client.clientVersion)
             append("X-Origin", YouTubeClient.ORIGIN_YOUTUBE_MUSIC)
             append("Referer", YouTubeClient.REFERER_YOUTUBE_MUSIC)
-            visitorData?.let { append("X-Goog-Visitor-Id", it) }
+            (visitorDataOverride ?: visitorData)?.let { append("X-Goog-Visitor-Id", it) }
             if (setLogin && client.loginSupported) {
                 cookie?.let { cookie ->
                     append("cookie", cookie)
@@ -220,12 +224,19 @@ class InnerTube {
         playlistId: String?,
         signatureTimestamp: Int?,
         poToken: String? = null,
+        setLogin: Boolean = true,
+        visitorDataOverride: String? = null,
     ) = withRetry {
+        // When [setLogin] is false we resolve the stream in a logged-out context: no cookie/SAPISID,
+        // no onBehalfOfUser, and an anonymous visitorData. YouTube ties googlevideo stream URLs to
+        // the session, so an authenticated context forces a session PoToken that native clients
+        // (ANDROID_VR, IOS, ...) don't carry, producing 403 / "page needs to be reloaded".
+        val effectiveVisitorData = visitorDataOverride ?: visitorData
         httpClient.post("player") {
-            ytClient(client, setLogin = true)
+            ytClient(client, setLogin = setLogin, visitorDataOverride = effectiveVisitorData)
             setBody(
                 PlayerBody(
-                    context = client.toContext(locale, visitorData, dataSyncId).let {
+                    context = client.toContext(locale, effectiveVisitorData, if (setLogin) dataSyncId else null).let {
                         if (client.isEmbedded) {
                             it.copy(
                                 thirdParty = Context.ThirdParty(

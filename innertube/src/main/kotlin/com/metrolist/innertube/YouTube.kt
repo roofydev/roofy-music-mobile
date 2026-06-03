@@ -2732,9 +2732,13 @@ object YouTube {
         client: YouTubeClient,
         signatureTimestamp: Int? = null,
         poToken: String? = null,
+        setLogin: Boolean = true,
+        visitorDataOverride: String? = null,
     ): Result<PlayerResponse> =
         runCatching {
-            innerTube.player(client, videoId, playlistId, signatureTimestamp, poToken).body<PlayerResponse>()
+            innerTube
+                .player(client, videoId, playlistId, signatureTimestamp, poToken, setLogin, visitorDataOverride)
+                .body<PlayerResponse>()
         }
 
     suspend fun registerPlayback(
