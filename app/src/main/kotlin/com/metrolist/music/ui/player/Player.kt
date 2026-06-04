@@ -7,13 +7,19 @@
 package com.metrolist.music.ui.player
 
 import androidx.activity.compose.BackHandler
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.graphics.Color as AndroidGraphicsColor
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -31,6 +37,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -72,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -108,6 +116,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -120,6 +130,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.VideoSize
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -157,6 +170,7 @@ import com.metrolist.music.extensions.togglePlayPause
 import com.metrolist.music.extensions.toggleRepeatMode
 import com.metrolist.music.listentogether.RoomRole
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.playback.PlaybackVariant
 import com.metrolist.music.ui.component.BottomSheet
 import com.metrolist.music.ui.component.BottomSheetState
 import com.metrolist.music.ui.devices.ListenOnButton
@@ -201,6 +215,8 @@ fun BottomSheetPlayer(
     navController: NavController,
     modifier: Modifier = Modifier,
     pureBlack: Boolean,
+    videoFullScreen: Boolean,
+    onVideoFullScreenChange: (Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -223,8 +239,9 @@ fun BottomSheetPlayer(
         mutableStateOf(false)
     }
 
-    var isFullScreen by rememberSaveable {
-        mutableStateOf(false)
+    var isFullScreen by rememberSaveable { mutableStateOf(false) }
+    var previousVideoOrientation by rememberSaveable {
+        mutableIntStateOf(ORIENTATION_NOT_SAVED)
     }
 
     val playerBackground by rememberEnumPreference(
@@ -277,16 +294,15 @@ fun BottomSheetPlayer(
         }
     }
 
-    BackHandler(enabled = state.isExpanded) {
-        state.collapseSoft()
-    }
-
     val onBackgroundColor = RetroTokens.Text
     // Force solid black background — blur/gradient paths removed
     val useBlackBackground = true
 
     val playbackState by playerConnection.playbackState.collectAsStateWithLifecycle()
     val mediaMetadata by playerConnection.mediaMetadata.collectAsStateWithLifecycle()
+    val playbackVariant by playerConnection.playbackVariant.collectAsStateWithLifecycle()
+    val videoPlaybackLoading by playerConnection.videoPlaybackLoading.collectAsStateWithLifecycle()
+    val videoPlaybackError by playerConnection.videoPlaybackError.collectAsStateWithLifecycle()
     val currentSong by playerConnection.currentSong.collectAsStateWithLifecycle(initialValue = null)
     val automix by playerConnection.service.automixItems.collectAsStateWithLifecycle()
     val repeatMode by playerConnection.repeatMode.collectAsStateWithLifecycle()
@@ -315,6 +331,77 @@ fun BottomSheetPlayer(
     val castPosition by castHandler?.castPosition?.collectAsStateWithLifecycle() ?: remember { mutableLongStateOf(0L) }
     val castDuration by castHandler?.castDuration?.collectAsStateWithLifecycle() ?: remember { mutableLongStateOf(0L) }
     val castIsPlaying by castHandler?.castIsPlaying?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
+    val canUseNativeVideo =
+        remember(mediaMetadata?.id, isCasting, isControllingComputer) {
+            canUseNativeVideo(mediaMetadata?.id) && !isCasting && !isControllingComputer
+        }
+    val isVideoFullScreen = videoFullScreen && playbackVariant == PlaybackVariant.VIDEO && !showInlineLyrics && canUseNativeVideo
+    val toggleNativeVideoFullScreen = {
+        if (videoFullScreen) {
+            isFullScreen = false
+            onVideoFullScreenChange(false)
+        } else {
+            showInlineLyrics = false
+            isFullScreen = true
+            onVideoFullScreenChange(true)
+        }
+    }
+
+    BackHandler(enabled = isVideoFullScreen) {
+        isFullScreen = false
+        onVideoFullScreenChange(false)
+    }
+
+    BackHandler(enabled = state.isExpanded && !isVideoFullScreen) {
+        state.collapseSoft()
+    }
+
+    LaunchedEffect(canUseNativeVideo, playbackVariant) {
+        if (!canUseNativeVideo && playbackVariant == PlaybackVariant.VIDEO) {
+            playerConnection.setPlaybackVariant(PlaybackVariant.AUDIO)
+        }
+    }
+
+    LaunchedEffect(playbackVariant, showInlineLyrics) {
+        if (playbackVariant != PlaybackVariant.VIDEO && !showInlineLyrics) {
+            isFullScreen = false
+            onVideoFullScreenChange(false)
+        }
+    }
+
+    LaunchedEffect(isVideoFullScreen, context) {
+        val activity = context as? Activity
+        val window = activity?.window
+        if (isVideoFullScreen && activity != null && window != null) {
+            if (previousVideoOrientation == ORIENTATION_NOT_SAVED) {
+                previousVideoOrientation = activity.requestedOrientation
+            }
+            activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else if (!isVideoFullScreen && activity != null && window != null) {
+            if (previousVideoOrientation != ORIENTATION_NOT_SAVED) {
+                activity.requestedOrientation = previousVideoOrientation
+                previousVideoOrientation = ORIENTATION_NOT_SAVED
+            }
+            WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        val window = activity?.window
+        onDispose {
+            if (activity != null && window != null) {
+                if (!activity.isChangingConfigurations && previousVideoOrientation != ORIENTATION_NOT_SAVED) {
+                    activity.requestedOrientation = previousVideoOrientation
+                }
+                WindowCompat.getInsetsController(window, window.decorView).show(WindowInsetsCompat.Type.systemBars())
+            }
+        }
+    }
 
     val focusRequester = remember { FocusRequester() }
 
@@ -570,6 +657,40 @@ fun BottomSheetPlayer(
     val bottomSheetBackgroundColor = Color.Black
 
     val backgroundAlpha = state.progress.coerceIn(0f, 1f)
+
+    if (isVideoFullScreen) {
+        Dialog(
+            onDismissRequest = {
+                isFullScreen = false
+                onVideoFullScreenChange(false)
+            },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            NativeVideoSurface(
+                player = playerConnection.player,
+                isLoading = videoPlaybackLoading,
+                error = videoPlaybackError,
+                isVideoFullScreen = true,
+                isPlaying = effectiveIsPlaying,
+                position = effectivePosition,
+                duration = duration,
+                canSkipPrevious = canSkipPrevious && !isListenTogetherGuest,
+                canSkipNext = canSkipNext && !isListenTogetherGuest,
+                onPlayPause = playerConnection::togglePlayPause,
+                onSeek = playerConnection::seekTo,
+                onPrevious = playerConnection::seekToPrevious,
+                onNext = playerConnection::seekToNext,
+                onFullscreenToggle = {
+                    isFullScreen = false
+                    onVideoFullScreenChange(false)
+                },
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+            )
+        }
+    }
 
     BottomSheet(
         state = state,
@@ -902,6 +1023,23 @@ fun BottomSheetPlayer(
 
             Spacer(Modifier.height(24.dp))
 
+            if (canUseNativeVideo) {
+                videoPlaybackError?.let { message ->
+                    Text(
+                        text = message.ifBlank { stringResource(R.string.video_native_unavailable) },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = RetroTokens.TextMuted,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = PlayerHorizontalPadding),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                }
+            }
+
             when (sliderStyle) {
                 SliderStyle.DEFAULT -> {
                     Slider(
@@ -1177,11 +1315,15 @@ fun BottomSheetPlayer(
 
                 Row(
                     modifier =
-                        Modifier
-                            .windowInsetsPadding(
-                                WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).add(verticalWindowInsets),
-                            ).padding(bottom = 24.dp)
-                            .fillMaxSize(),
+                        if (isVideoFullScreen) {
+                            Modifier.fillMaxSize()
+                        } else {
+                            Modifier
+                                .windowInsetsPadding(
+                                    WindowInsets.systemBars.only(WindowInsetsSides.Horizontal).add(verticalWindowInsets),
+                                ).padding(bottom = 24.dp)
+                                .fillMaxSize()
+                        },
                 ) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -1194,6 +1336,7 @@ fun BottomSheetPlayer(
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
+
                         if (isControllingComputer) {
                             DesktopRemoteArtwork(
                                 remoteState = remoteState,
@@ -1203,55 +1346,128 @@ fun BottomSheetPlayer(
                                 modifier = Modifier.animateContentSize(),
                             )
                         } else {
-                            AnimatedContent(
-                                targetState = showInlineLyrics,
-                                label = "Lyrics",
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            ) { showLyrics ->
-                                if (showLyrics) {
-                                    InlineLyricsView(
-                                        mediaMetadata = mediaMetadata,
-                                        showLyrics = showLyrics,
-                                        positionProvider = { effectivePosition },
+                            val mediaPanel =
+                                when {
+                                    showInlineLyrics -> PlayerMediaPanel.LYRICS
+                                    playbackVariant == PlaybackVariant.VIDEO && canUseNativeVideo -> PlayerMediaPanel.VIDEO
+                                    else -> PlayerMediaPanel.ARTWORK
+                                }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier =
+                                    if (isVideoFullScreen) {
+                                        Modifier.fillMaxSize()
+                                    } else {
+                                        Modifier.fillMaxWidth()
+                                    },
+                            ) {
+                                if (canUseNativeVideo && !showInlineLyrics && !isFullScreen) {
+                                    PlaybackVariantToggle(
+                                        selectedVariant = playbackVariant,
+                                        enabled = !isListenTogetherGuest,
+                                        onVariantSelected = { variant ->
+                                            if (variant == PlaybackVariant.VIDEO) {
+                                                showInlineLyrics = false
+                                            }
+                                            val switched = playerConnection.setPlaybackVariant(variant)
+                                            if (!switched && variant == PlaybackVariant.VIDEO) {
+                                                Toast
+                                                    .makeText(context, R.string.video_native_unavailable, Toast.LENGTH_SHORT)
+                                                    .show()
+                                            }
+                                        },
                                     )
-                                } else {
-                                    Thumbnail(
-                                        sliderPositionProvider = sliderPositionProvider,
-                                        navController = navController,
-                                        playerBottomSheetState = state,
-                                        modifier = Modifier.animateContentSize(),
-                                        isPlayerExpanded = isExpandedProvider,
-                                        isLandscape = true,
-                                        isListenTogetherGuest = isListenTogetherGuest,
-                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                }
+
+                                AnimatedContent(
+                                    targetState = mediaPanel,
+                                    label = "Lyrics",
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                ) { panel ->
+                                    when (panel) {
+                                        PlayerMediaPanel.LYRICS ->
+                                            InlineLyricsView(
+                                                mediaMetadata = mediaMetadata,
+                                                showLyrics = true,
+                                                positionProvider = { effectivePosition },
+                                            )
+                                        PlayerMediaPanel.VIDEO ->
+                                            if (isVideoFullScreen) {
+                                                Box(
+                                                    modifier =
+                                                        Modifier
+                                                            .fillMaxWidth(0.92f)
+                                                            .aspectRatio(16f / 9f)
+                                                            .background(Color.Black),
+                                                )
+                                            } else {
+                                                mediaMetadata?.let {
+                                                    NativeVideoSurface(
+                                                        player = playerConnection.player,
+                                                        isLoading = videoPlaybackLoading,
+                                                        error = videoPlaybackError,
+                                                        isVideoFullScreen = false,
+                                                        isPlaying = effectiveIsPlaying,
+                                                        position = effectivePosition,
+                                                        duration = duration,
+                                                        canSkipPrevious = canSkipPrevious && !isListenTogetherGuest,
+                                                        canSkipNext = canSkipNext && !isListenTogetherGuest,
+                                                        onPlayPause = playerConnection::togglePlayPause,
+                                                        onSeek = playerConnection::seekTo,
+                                                        onPrevious = playerConnection::seekToPrevious,
+                                                        onNext = playerConnection::seekToNext,
+                                                        onFullscreenToggle = toggleNativeVideoFullScreen,
+                                                        modifier =
+                                                            Modifier
+                                                                .fillMaxWidth(0.92f)
+                                                                .aspectRatio(16f / 9f)
+                                                                .animateContentSize(),
+                                                    )
+                                                }
+                                            }
+                                        PlayerMediaPanel.ARTWORK ->
+                                            Thumbnail(
+                                                sliderPositionProvider = sliderPositionProvider,
+                                                navController = navController,
+                                                playerBottomSheetState = state,
+                                                modifier = Modifier.animateContentSize(),
+                                                isPlayerExpanded = isExpandedProvider,
+                                                isLandscape = true,
+                                                isListenTogetherGuest = isListenTogetherGuest,
+                                            )
+                                    }
                                 }
                             }
                         }
                     }
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier =
-                            Modifier
-                                .weight(if (!isControllingComputer && showInlineLyrics) 0.65f else 1f, false)
-                                .animateContentSize()
-                                .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
-                    ) {
-                        Spacer(Modifier.weight(1f))
+                    if (!isVideoFullScreen) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier =
+                                Modifier
+                                    .weight(if (!isControllingComputer && showInlineLyrics) 0.65f else 1f, false)
+                                    .animateContentSize()
+                                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
+                        ) {
+                            Spacer(Modifier.weight(1f))
 
-                        if (isControllingComputer) {
-                            DesktopRemoteNowPlayingPanel(
-                                remoteState = remoteState,
-                                computerName = computerName,
-                                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                            )
-                        } else {
-                            mediaMetadata?.let {
-                                controlsContent(it)
+                            if (isControllingComputer) {
+                                DesktopRemoteNowPlayingPanel(
+                                    remoteState = remoteState,
+                                    computerName = computerName,
+                                    modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                                )
+                            } else {
+                                mediaMetadata?.let {
+                                    controlsContent(it)
+                                }
                             }
-                        }
 
-                        Spacer(Modifier.weight(1f))
+                            Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
             }
@@ -1270,13 +1486,27 @@ fun BottomSheetPlayer(
                             .animateContentSize(),
                 ) {
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.weight(1f),
+                        contentAlignment = if (isVideoFullScreen) {
+                            Alignment.Center
+                        } else {
+                            Alignment.TopCenter
+                        },
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .then(
+                                    if (isVideoFullScreen) {
+                                        Modifier
+                                    } else {
+                                        Modifier.windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+                                    },
+                                ),
                     ) {
                         // Remember lambdas to prevent unnecessary recomposition
                         val currentSliderPosition by rememberUpdatedState(sliderPosition)
                         val sliderPositionProvider = remember { { currentSliderPosition } }
                         val isExpandedProvider = remember(state) { { state.isExpanded } }
+
                         if (isControllingComputer) {
                             DesktopRemoteArtwork(
                                 remoteState = remoteState,
@@ -1286,44 +1516,119 @@ fun BottomSheetPlayer(
                                 modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
                             )
                         } else {
-                            AnimatedContent(
-                                targetState = showInlineLyrics,
-                                label = "Lyrics",
-                                transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            ) { showLyrics ->
-                                if (showLyrics) {
-                                    InlineLyricsView(
-                                        mediaMetadata = mediaMetadata,
-                                        showLyrics = showLyrics,
-                                        positionProvider = { effectivePosition },
+                            val mediaPanel =
+                                when {
+                                    showInlineLyrics -> PlayerMediaPanel.LYRICS
+                                    playbackVariant == PlaybackVariant.VIDEO && canUseNativeVideo -> PlayerMediaPanel.VIDEO
+                                    else -> PlayerMediaPanel.ARTWORK
+                                }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier =
+                                    if (isVideoFullScreen) {
+                                        Modifier.fillMaxSize()
+                                    } else {
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = 56.dp)
+                                    },
+                            ) {
+                                if (canUseNativeVideo && !showInlineLyrics && !isFullScreen) {
+                                    PlaybackVariantToggle(
+                                        selectedVariant = playbackVariant,
+                                        enabled = !isListenTogetherGuest,
+                                        onVariantSelected = { variant ->
+                                            if (variant == PlaybackVariant.VIDEO) {
+                                                showInlineLyrics = false
+                                            }
+                                            val switched = playerConnection.setPlaybackVariant(variant)
+                                            if (!switched && variant == PlaybackVariant.VIDEO) {
+                                                Toast
+                                                    .makeText(context, R.string.video_native_unavailable, Toast.LENGTH_SHORT)
+                                                    .show()
+                                            }
+                                        },
                                     )
-                                } else {
-                                    Thumbnail(
-                                        sliderPositionProvider = sliderPositionProvider,
-                                        navController = navController,
-                                        playerBottomSheetState = state,
-                                        modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
-                                        isPlayerExpanded = isExpandedProvider,
-                                        isListenTogetherGuest = isListenTogetherGuest,
-                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                }
+
+                                AnimatedContent(
+                                    targetState = mediaPanel,
+                                    label = "Lyrics",
+                                    transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                ) { panel ->
+                                    when (panel) {
+                                        PlayerMediaPanel.LYRICS ->
+                                            InlineLyricsView(
+                                                mediaMetadata = mediaMetadata,
+                                                showLyrics = true,
+                                                positionProvider = { effectivePosition },
+                                            )
+                                        PlayerMediaPanel.VIDEO ->
+                                            if (isVideoFullScreen) {
+                                                Box(
+                                                    modifier =
+                                                        Modifier
+                                                            .fillMaxWidth(0.94f)
+                                                            .aspectRatio(16f / 9f)
+                                                            .background(Color.Black),
+                                                )
+                                            } else {
+                                                mediaMetadata?.let {
+                                                    NativeVideoSurface(
+                                                        player = playerConnection.player,
+                                                        isLoading = videoPlaybackLoading,
+                                                        error = videoPlaybackError,
+                                                        isVideoFullScreen = false,
+                                                        isPlaying = effectiveIsPlaying,
+                                                        position = effectivePosition,
+                                                        duration = duration,
+                                                        canSkipPrevious = canSkipPrevious && !isListenTogetherGuest,
+                                                        canSkipNext = canSkipNext && !isListenTogetherGuest,
+                                                        onPlayPause = playerConnection::togglePlayPause,
+                                                        onSeek = playerConnection::seekTo,
+                                                        onPrevious = playerConnection::seekToPrevious,
+                                                        onNext = playerConnection::seekToNext,
+                                                        onFullscreenToggle = toggleNativeVideoFullScreen,
+                                                        modifier =
+                                                            Modifier
+                                                                .fillMaxWidth(0.94f)
+                                                                .aspectRatio(16f / 9f)
+                                                                .nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                                    )
+                                                }
+                                            }
+                                        PlayerMediaPanel.ARTWORK ->
+                                            Thumbnail(
+                                                sliderPositionProvider = sliderPositionProvider,
+                                                navController = navController,
+                                                playerBottomSheetState = state,
+                                                modifier = Modifier.nestedScroll(state.preUpPostDownNestedScrollConnection),
+                                                isPlayerExpanded = isExpandedProvider,
+                                                isListenTogetherGuest = isListenTogetherGuest,
+                                            )
+                                    }
                                 }
                             }
                         }
                     }
 
-                    if (isControllingComputer) {
-                        DesktopRemoteNowPlayingPanel(
-                            remoteState = remoteState,
-                            computerName = computerName,
-                            modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
-                        )
-                    } else {
-                        mediaMetadata?.let {
-                            controlsContent(it)
+                    if (!isVideoFullScreen) {
+                        if (isControllingComputer) {
+                            DesktopRemoteNowPlayingPanel(
+                                remoteState = remoteState,
+                                computerName = computerName,
+                                modifier = Modifier.padding(horizontal = PlayerHorizontalPadding),
+                            )
+                        } else {
+                            mediaMetadata?.let {
+                                controlsContent(it)
+                            }
                         }
-                    }
 
-                    Spacer(Modifier.height(30.dp))
+                        Spacer(Modifier.height(30.dp))
+                    }
                 }
             }
         }
@@ -1349,6 +1654,430 @@ fun BottomSheetPlayer(
                     showInlineLyrics = !showInlineLyrics
                 },
             )
+        }
+    }
+}
+
+private enum class PlayerMediaPanel {
+    LYRICS,
+    VIDEO,
+    ARTWORK,
+}
+
+private const val ORIENTATION_NOT_SAVED = Int.MIN_VALUE
+
+private fun canUseNativeVideo(mediaId: String?): Boolean =
+    !mediaId.isNullOrBlank() && !mediaId.startsWith("subsonic:") && !mediaId.contains("/")
+
+@Composable
+private fun PlaybackVariantToggle(
+    selectedVariant: PlaybackVariant,
+    enabled: Boolean,
+    onVariantSelected: (PlaybackVariant) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(0.dp))
+                .background(Color.Black.copy(alpha = 0.34f))
+                .padding(4.dp),
+    ) {
+        PlaybackVariantButton(
+            icon = R.drawable.headphones,
+            contentDescription = stringResource(R.string.player_audio_mode),
+            selected = selectedVariant == PlaybackVariant.AUDIO,
+            enabled = enabled,
+            onClick = { onVariantSelected(PlaybackVariant.AUDIO) },
+        )
+        PlaybackVariantButton(
+            icon = R.drawable.video,
+            contentDescription = stringResource(R.string.player_video_mode),
+            selected = selectedVariant == PlaybackVariant.VIDEO,
+            enabled = enabled,
+            onClick = { onVariantSelected(PlaybackVariant.VIDEO) },
+        )
+    }
+}
+
+@Composable
+private fun PlaybackVariantButton(
+    @DrawableRes icon: Int,
+    contentDescription: String,
+    selected: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            modifier
+                .size(48.dp)
+                .background(if (selected) RetroTokens.Panel3.copy(alpha = 0.94f) else Color.Transparent)
+                .border(
+                    width = 1.dp,
+                    color = if (selected) RetroTokens.BorderBright else Color.Transparent,
+                    shape = RoundedCornerShape(0.dp),
+                )
+                .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(24.dp),
+            tint = when {
+                !enabled -> RetroTokens.TextDim
+                selected -> RetroTokens.Text
+                else -> RetroTokens.TextMuted
+            },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun NativeVideoSurface(
+    player: Player,
+    isLoading: Boolean,
+    error: String?,
+    isVideoFullScreen: Boolean,
+    isPlaying: Boolean,
+    position: Long,
+    duration: Long,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    onPlayPause: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onFullscreenToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var playerView by remember { mutableStateOf<PlayerView?>(null) }
+    var controlsVisible by rememberSaveable(isVideoFullScreen) { mutableStateOf(true) }
+    var isScrubbing by remember { mutableStateOf(false) }
+    var scrubPosition by remember { mutableStateOf<Long?>(null) }
+    var isVideoReady by remember(player) {
+        mutableStateOf(player.isPlaying || player.playbackState == Player.STATE_READY || player.videoSize.width > 0)
+    }
+    val showLoading = isLoading && !isVideoReady && error == null
+
+    DisposableEffect(player) {
+        fun refreshVideoReady() {
+            isVideoReady = player.isPlaying || player.playbackState == Player.STATE_READY || player.videoSize.width > 0
+        }
+
+        val listener =
+            object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    refreshVideoReady()
+                }
+
+                override fun onIsPlayingChanged(isPlaying: Boolean) {
+                    refreshVideoReady()
+                }
+
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    if (videoSize.width > 0 && videoSize.height > 0) {
+                        isVideoReady = true
+                    }
+                }
+            }
+
+        player.addListener(listener)
+        refreshVideoReady()
+        onDispose {
+            player.removeListener(listener)
+        }
+    }
+
+    LaunchedEffect(isVideoFullScreen) {
+        if (isVideoFullScreen) controlsVisible = true
+    }
+
+    LaunchedEffect(isVideoFullScreen, controlsVisible, isPlaying, isScrubbing, scrubPosition) {
+        if (isVideoFullScreen && controlsVisible && isPlaying && !isScrubbing && scrubPosition == null) {
+            delay(3_000)
+            controlsVisible = false
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            playerView?.player = null
+        }
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(0.dp))
+                .background(Color.Black)
+                .then(
+                    if (isVideoFullScreen) {
+                        Modifier
+                    } else {
+                        Modifier.border(1.dp, RetroTokens.BorderMuted, RoundedCornerShape(0.dp))
+                    },
+                )
+                .pointerInput(isVideoFullScreen) {
+                    if (isVideoFullScreen) {
+                        detectTapGestures {
+                            controlsVisible = !controlsVisible
+                        }
+                    }
+                },
+    ) {
+        AndroidView(
+            factory = { viewContext ->
+                PlayerView(viewContext).apply {
+                    layoutParams =
+                        FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
+                    useController = false
+                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    setShutterBackgroundColor(AndroidGraphicsColor.BLACK)
+                    this.player = player
+                    playerView = this
+                }
+            },
+            update = { view ->
+                playerView = view
+                view.player = player
+            },
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        if (!isVideoFullScreen) {
+            RetroIconButton(
+                onClick = onFullscreenToggle,
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
+                        .size(44.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.fullscreen),
+                    contentDescription = stringResource(R.string.product_ux_a11y_fullscreen),
+                    modifier = Modifier.size(22.dp),
+                    tint = RetroTokens.Text,
+                )
+            }
+        }
+
+        if (isVideoFullScreen && controlsVisible) {
+            VideoFullscreenControls(
+                isPlaying = isPlaying,
+                position = scrubPosition ?: position,
+                duration = duration,
+                canSkipPrevious = canSkipPrevious,
+                canSkipNext = canSkipNext,
+                onPlayPause = {
+                    controlsVisible = true
+                    onPlayPause()
+                },
+                onSeekStarted = {
+                    isScrubbing = true
+                    controlsVisible = true
+                },
+                onSeekChanging = { newPosition ->
+                    scrubPosition = newPosition
+                    controlsVisible = true
+                },
+                onSeekFinished = {
+                    scrubPosition?.let(onSeek)
+                    scrubPosition = null
+                    isScrubbing = false
+                    controlsVisible = true
+                },
+                onPrevious = {
+                    controlsVisible = true
+                    onPrevious()
+                },
+                onNext = {
+                    controlsVisible = true
+                    onNext()
+                },
+                onExitFullscreen = {
+                    controlsVisible = true
+                    onFullscreenToggle()
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
+        if (showLoading) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.58f)),
+            ) {
+                Spacer(Modifier.weight(1f))
+                ContainedLoadingIndicator()
+                Text(
+                    text = stringResource(R.string.video_loading),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = RetroTokens.Text,
+                )
+                Spacer(Modifier.weight(1f))
+            }
+        }
+
+        if (error != null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.72f))
+                        .padding(20.dp),
+            ) {
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = error.ifBlank { stringResource(R.string.video_native_unavailable) },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = RetroTokens.Text,
+                    textAlign = TextAlign.Center,
+                )
+                Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VideoFullscreenControls(
+    isPlaying: Boolean,
+    position: Long,
+    duration: Long,
+    canSkipPrevious: Boolean,
+    canSkipNext: Boolean,
+    onPlayPause: () -> Unit,
+    onSeekStarted: () -> Unit,
+    onSeekChanging: (Long) -> Unit,
+    onSeekFinished: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onExitFullscreen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val safeDuration = duration.takeIf { it != C.TIME_UNSET && it > 0L } ?: 0L
+    val safePosition = position.coerceIn(0L, safeDuration.takeIf { it > 0L } ?: Long.MAX_VALUE)
+
+    Box(
+        modifier =
+            modifier
+                .background(Color.Black.copy(alpha = 0.34f)),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(28.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.align(Alignment.Center),
+        ) {
+            RetroIconButton(
+                onClick = onPrevious,
+                enabled = canSkipPrevious,
+                modifier = Modifier.size(56.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.skip_previous),
+                    contentDescription = stringResource(R.string.previous),
+                    modifier = Modifier.size(28.dp),
+                    tint = if (canSkipPrevious) RetroTokens.Text else RetroTokens.TextDim,
+                )
+            }
+
+            RetroIconButton(
+                onClick = onPlayPause,
+                modifier = Modifier.size(72.dp),
+            ) {
+                Icon(
+                    painter = painterResource(if (isPlaying) R.drawable.pause else R.drawable.play),
+                    contentDescription = stringResource(if (isPlaying) R.string.pause else R.string.play),
+                    modifier = Modifier.size(36.dp),
+                    tint = RetroTokens.Text,
+                )
+            }
+
+            RetroIconButton(
+                onClick = onNext,
+                enabled = canSkipNext,
+                modifier = Modifier.size(56.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.skip_next),
+                    contentDescription = stringResource(R.string.next),
+                    modifier = Modifier.size(28.dp),
+                    tint = if (canSkipNext) RetroTokens.Text else RetroTokens.TextDim,
+                )
+            }
+        }
+
+        Column(
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom))
+                    .padding(horizontal = 24.dp, vertical = 18.dp),
+        ) {
+            Slider(
+                value = safePosition.toFloat(),
+                valueRange = 0f..safeDuration.toFloat().coerceAtLeast(1f),
+                onValueChange = {
+                    onSeekStarted()
+                    onSeekChanging(it.toLong())
+                },
+                onValueChangeFinished = onSeekFinished,
+                colors = SliderDefaults.colors(
+                    thumbColor = RetroTokens.Text,
+                    activeTrackColor = RetroTokens.Text,
+                    inactiveTrackColor = RetroTokens.BorderMuted,
+                ),
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = makeTimeString(safePosition),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = RetroTokens.Text,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = if (safeDuration > 0L) makeTimeString(safeDuration) else "",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = RetroTokens.Text,
+                    )
+                    RetroIconButton(
+                        onClick = onExitFullscreen,
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.fullscreen_exit),
+                            contentDescription = stringResource(R.string.exit_fullscreen),
+                            modifier = Modifier.size(24.dp),
+                            tint = RetroTokens.Text,
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -211,6 +211,13 @@ class BottomSheetState(
         expand(spring(stiffness = Spring.StiffnessMediumLow))
     }
 
+    fun expandImmediately() {
+        onAnchorChanged(expandedAnchor)
+        coroutineScope.launch {
+            animatable.snapTo(animatable.upperBound!!)
+        }
+    }
+
     fun dismiss() {
         onAnchorChanged(dismissedAnchor)
         coroutineScope.launch {

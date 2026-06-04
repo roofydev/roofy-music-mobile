@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,6 +35,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
@@ -79,7 +81,10 @@ import com.metrolist.music.extensions.toMediaItem
 import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.models.toMediaMetadata
 import com.metrolist.music.playback.ExoDownloadService
+import com.metrolist.music.playback.OfflineSaveMode
 import com.metrolist.music.playback.queues.YouTubeQueue
+import com.metrolist.music.playback.sendAddOfflineDownload
+import com.metrolist.music.playback.sendRemoveOfflineDownload
 import com.metrolist.music.productux.TrackActionResolver
 import com.metrolist.music.productux.UserFacingErrors
 import com.metrolist.music.ui.component.ListDialog
@@ -130,6 +135,10 @@ fun YouTubeSongMenu(
         mutableStateOf(false)  
     }  
 
+    var showOfflineSaveDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     AddToPlaylistDialog(
         isVisible = showChoosePlaylistDialog,
         onGetSong = { playlist ->
@@ -146,6 +155,52 @@ fun YouTubeSongMenu(
         onGetSongIds = { listOf(song.id) },
         onDismiss = { showChoosePlaylistDialog = false }
     )  
+
+    if (showOfflineSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showOfflineSaveDialog = false },
+            title = { Text(text = stringResource(R.string.save_offline_title)) },
+            text = { Text(text = stringResource(R.string.save_offline_choice_desc)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        database.transaction {
+                            insert(song.toMediaMetadata())
+                        }
+                        sendAddOfflineDownload(
+                            context = context,
+                            mediaId = song.id,
+                            title = song.title,
+                            mode = OfflineSaveMode.AUDIO_AND_VIDEO,
+                        )
+                        showOfflineSaveDialog = false
+                        onDismiss()
+                    },
+                ) {
+                    Text(text = stringResource(R.string.save_offline_audio_video))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        database.transaction {
+                            insert(song.toMediaMetadata())
+                        }
+                        sendAddOfflineDownload(
+                            context = context,
+                            mediaId = song.id,
+                            title = song.title,
+                            mode = OfflineSaveMode.AUDIO_ONLY,
+                        )
+                        showOfflineSaveDialog = false
+                        onDismiss()
+                    },
+                ) {
+                    Text(text = stringResource(R.string.save_offline_audio_only))
+                }
+            },
+        )
+    }
 
     var showSelectArtistDialog by rememberSaveable {  
         mutableStateOf(false)  
@@ -305,7 +360,6 @@ fun YouTubeSongMenu(
         )
     val showAddToMyLibrary = TrackActionResolver.shouldShowAddToLibrary(trackActions)
     val showSaveOffline = TrackActionResolver.shouldShowSaveOffline(trackActions)
-    val showWatchVideo = TrackActionResolver.shouldShowWatchVideo(trackActions)
 
     LazyColumn(
         contentPadding = PaddingValues(
@@ -509,12 +563,7 @@ fun YouTubeSongMenu(
                                             )
                                         },
                                         onClick = {
-                                            DownloadService.sendRemoveDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                song.id,
-                                                false,
-                                            )
+                                            sendRemoveOfflineDownload(context, song.id)
                                         },
                                     )
                                 Download.STATE_QUEUED, Download.STATE_DOWNLOADING ->
@@ -527,12 +576,7 @@ fun YouTubeSongMenu(
                                             )
                                         },
                                         onClick = {
-                                            DownloadService.sendRemoveDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                song.id,
-                                                false,
-                                            )
+                                            sendRemoveOfflineDownload(context, song.id)
                                         },
                                     )
                                 else ->
@@ -546,21 +590,7 @@ fun YouTubeSongMenu(
                                             )
                                         },
                                         onClick = {
-                                            database.transaction {
-                                                insert(song.toMediaMetadata())
-                                            }
-                                            val downloadRequest =
-                                                DownloadRequest
-                                                    .Builder(song.id, song.id.toUri())
-                                                    .setCustomCacheKey(song.id)
-                                                    .setData(song.title.toByteArray())
-                                                    .build()
-                                            DownloadService.sendAddDownload(
-                                                context,
-                                                ExoDownloadService::class.java,
-                                                downloadRequest,
-                                                false,
-                                            )
+                                            showOfflineSaveDialog = true
                                         },
                                     )
                             },
@@ -629,32 +659,6 @@ fun YouTubeSongMenu(
                                     }
                                 }
                             )
-                        )
-                    }
-                    if (showWatchVideo) {
-                        add(
-                            Material3MenuItemData(
-                                title = { Text(text = stringResource(R.string.open_video)) },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(R.drawable.play),
-                                        contentDescription = stringResource(R.string.open_video),
-                                    )
-                                },
-                                onClick = {
-                                    val url =
-                                        com.metrolist.music.productux.WatchVideo.videoUrlForTrack(
-                                            trackId = song.id,
-                                            shareLink = song.shareLink,
-                                        )
-                                    com.metrolist.music.productux.WatchVideo.open(
-                                        context = context,
-                                        navController = navController,
-                                        videoUrl = url,
-                                    )
-                                    onDismiss()
-                                },
-                            ),
                         )
                     }
                     add(

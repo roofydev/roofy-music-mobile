@@ -122,6 +122,8 @@ constructor(
                 ),
         ) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
+            val sourceMediaId = sourceMediaIdFromCacheKey(mediaId)
+            val variant = playbackVariantFromCacheKey(mediaId)
             val length = if (dataSpec.length >= 0) dataSpec.length else 1
 
             if (playerCache.isCached(mediaId, dataSpec.position, length)) {
@@ -135,9 +137,10 @@ constructor(
 
             val playbackData = runBlocking(Dispatchers.IO) {
                 YTPlayerUtils.playerResponseForPlayback(
-                    mediaId,
+                    sourceMediaId,
                     audioQuality = audioQuality,
                     connectivityManager = connectivityManager,
+                    playbackVariant = variant,
                 )
             }.getOrThrow()
             val format = playbackData.format
@@ -159,7 +162,7 @@ constructor(
                 )
 
                 val now = LocalDateTime.now()
-                val existing = getSongByIdBlocking(mediaId)?.song
+                val existing = getSongByIdBlocking(sourceMediaId)?.song
 
                 val updatedSong = if (existing != null) {
                     if (existing.dateDownload == null) {
@@ -169,7 +172,7 @@ constructor(
                     }
                 } else {
                     SongEntity(
-                        id = mediaId,
+                        id = sourceMediaId,
                         title = playbackData.videoDetails?.title ?: "Unknown",
                         duration = playbackData.videoDetails?.lengthSeconds?.toIntOrNull() ?: 0,
                         thumbnailUrl = playbackData.videoDetails?.thumbnail?.thumbnails?.lastOrNull()?.url,
@@ -250,14 +253,18 @@ constructor(
                         }
 
                         scope.launch {
+                            val sourceDownloadId = sourceMediaIdFromCacheKey(download.request.id)
+                            val downloadVariant = playbackVariantFromCacheKey(download.request.id)
                             when (download.state) {
                                 Download.STATE_COMPLETED -> {
-                                    database.updateDownloadedInfo(download.request.id, true, LocalDateTime.now())
+                                    database.updateDownloadedInfo(sourceDownloadId, true, LocalDateTime.now())
                                 }
                                 Download.STATE_FAILED,
                                 Download.STATE_STOPPED,
                                 Download.STATE_REMOVING -> {
-                                    database.updateDownloadedInfo(download.request.id, false, null)
+                                    if (downloadVariant == PlaybackVariant.AUDIO) {
+                                        database.updateDownloadedInfo(sourceDownloadId, false, null)
+                                    }
                                 }
                                 else -> {
                                 }
@@ -270,9 +277,13 @@ constructor(
                         download: Download,
                     ) {
                         val downloadId = download.request.id
+                        val sourceDownloadId = sourceMediaIdFromCacheKey(downloadId)
+                        val downloadVariant = playbackVariantFromCacheKey(downloadId)
 
                         runCatching {
-                            database.updateDownloadedInfo(downloadId, false, null)
+                            if (downloadVariant == PlaybackVariant.AUDIO) {
+                                database.updateDownloadedInfo(sourceDownloadId, false, null)
+                            }
                         }.onSuccess {
                             downloads.update { map ->
                                 map.toMutableMap().apply {

@@ -27,6 +27,7 @@ import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_CREATOR
 import com.metrolist.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import com.metrolist.innertube.models.response.PlayerResponse
 import com.metrolist.music.constants.AudioQuality
+import com.metrolist.music.playback.PlaybackVariant
 import com.metrolist.music.utils.cipher.CipherDeobfuscator
 import com.metrolist.music.utils.potoken.PoTokenGenerator
 import com.metrolist.music.utils.potoken.PoTokenResult
@@ -115,7 +116,17 @@ object YTPlayerUtils {
         audioQuality: AudioQuality,
         connectivityManager: ConnectivityManager,
         preferYtDlpFallback: Boolean = false,
-    ): Result<PlaybackData> = runCatching {
+        playbackVariant: PlaybackVariant = PlaybackVariant.AUDIO,
+    ): Result<PlaybackData> =
+        if (playbackVariant == PlaybackVariant.VIDEO) {
+            playerResponseForVideoPlayback(
+                videoId = videoId,
+                playlistId = playlistId,
+                audioQuality = audioQuality,
+                connectivityManager = connectivityManager,
+            )
+        } else {
+            runCatching {
         Timber.tag(TAG).d("=== PLAYER RESPONSE FOR PLAYBACK ===")
         Timber.tag(TAG).d("videoId: $videoId")
         Timber.tag(TAG).d("playlistId: $playlistId")
@@ -539,6 +550,139 @@ object YTPlayerUtils {
         println("[PLAYBACK_DEBUG] EXCEPTION during playback for videoId=$videoId: ${e::class.simpleName}: ${e.message}")
         PlaybackDiagnostics.e("resolve EXCEPTION videoId=$videoId: ${e::class.simpleName}: ${e.message}", e)
         e.printStackTrace()
+    }
+        }
+
+    private suspend fun playerResponseForVideoPlayback(
+        videoId: String,
+        playlistId: String? = null,
+        audioQuality: AudioQuality,
+        connectivityManager: ConnectivityManager,
+    ): Result<PlaybackData> = runCatching {
+        Timber.tag(TAG).d("=== PLAYER RESPONSE FOR VIDEO PLAYBACK ===")
+        val isLoggedIn = YouTube.cookie != null
+        val signatureTimestamp = getSignatureTimestampOrNull(videoId)
+        val sessionId = if (isLoggedIn) YouTube.dataSyncId ?: ensureVisitorData() else ensureVisitorData()
+        val poToken =
+            if (MAIN_CLIENT.useWebPoTokens && sessionId != null) {
+                runCatching { poTokenGenerator.getWebClientPoToken(videoId, sessionId) }.getOrNull()
+            } else {
+                null
+            }
+
+        val metadataResponse =
+            runCatching {
+                YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp.timestamp, poToken?.playerRequestPoToken)
+                    .getOrThrow()
+            }.getOrNull()
+        val audioConfig = metadataResponse?.playerConfig?.audioConfig
+        val videoDetails = metadataResponse?.videoDetails
+        val playbackTracking = metadataResponse?.playbackTracking
+
+        val clients = buildList {
+            add(ANDROID_VR_1_43_32)
+            add(ANDROID_VR_1_61_48)
+            add(ANDROID_VR_NO_AUTH)
+            add(IOS)
+            add(IPADOS)
+            add(MOBILE)
+            add(TVHTML5_SIMPLY_EMBEDDED_PLAYER)
+            add(TVHTML5)
+            add(WEB)
+            add(WEB_CREATOR)
+            add(MAIN_CLIENT)
+        }
+
+        var lastStatus: String? = metadataResponse?.playabilityStatus?.reason ?: metadataResponse?.playabilityStatus?.status
+        for (client in clients.distinctBy { it.clientName }) {
+            if (client.loginRequired && !isLoggedIn) continue
+
+            val clientPoToken = if (client.useWebPoTokens) poToken?.playerRequestPoToken else null
+            val response =
+                YouTube.player(
+                    videoId,
+                    playlistId,
+                    client,
+                    signatureTimestamp.timestamp,
+                    clientPoToken,
+                ).getOrNull()
+            lastStatus = response?.playabilityStatus?.reason ?: response?.playabilityStatus?.status ?: lastStatus
+            if (response?.playabilityStatus?.status != "OK") continue
+
+            val usesWebStreams = client.usesWebStreamContext()
+            val responseToUse =
+                if (usesWebStreams) {
+                    YouTube.newPipePlayer(videoId, response) ?: response
+                } else {
+                    response
+                }
+
+            val format = findMuxedVideoFormat(responseToUse, audioQuality, connectivityManager) ?: continue
+            val streamUrl = findUrlOrNull(format, videoId, responseToUse, skipNewPipe = !usesWebStreams) ?: continue
+            val requestHeaders = streamRequestHeaders(client)
+            if (!validateStatus(streamUrl, requestHeaders)) continue
+
+            val expiresInSeconds = responseToUse.streamingData?.expiresInSeconds
+                ?: response.streamingData?.expiresInSeconds
+                ?: continue
+
+            Timber.tag(TAG).i(
+                "Video playback: client=${client.clientName}, videoId=$videoId, " +
+                    "format=${format.itag}, quality=${format.qualityLabel ?: format.quality}",
+            )
+            PlaybackDiagnostics.i(
+                "VIDEO SELECTED client=${client.clientName} host=${PlaybackDiagnostics.host(streamUrl)} " +
+                    "itag=${format.itag} videoId=$videoId",
+            )
+            return@runCatching PlaybackData(
+                audioConfig = audioConfig,
+                videoDetails = videoDetails ?: response.videoDetails,
+                playbackTracking = playbackTracking ?: response.playbackTracking,
+                format = format,
+                streamUrl = streamUrl,
+                streamExpiresInSeconds = expiresInSeconds,
+                requestHeaders = requestHeaders,
+            )
+        }
+
+        throw PlaybackException(
+            lastStatus ?: "Video is not available for this track",
+            null,
+            PlaybackException.ERROR_CODE_REMOTE_ERROR,
+        )
+    }.onFailure { error ->
+        PlaybackDiagnostics.e(
+            "video resolve EXCEPTION videoId=$videoId: ${error::class.simpleName}: ${error.message}",
+            error,
+        )
+    }
+
+    private fun findMuxedVideoFormat(
+        playerResponse: PlayerResponse,
+        audioQuality: AudioQuality,
+        connectivityManager: ConnectivityManager,
+    ): PlayerResponse.StreamingData.Format? {
+        val targetHeight =
+            when {
+                connectivityManager.isActiveNetworkMetered -> 360
+                audioQuality == AudioQuality.LOW -> 360
+                else -> 720
+            }
+        val formats = playerResponse.streamingData?.formats.orEmpty()
+        return formats
+            .filter { format ->
+                format.width != null &&
+                    format.height != null &&
+                    format.mimeType.startsWith("video/") &&
+                    format.audioQuality != null
+            }
+            .sortedWith(
+                compareByDescending<PlayerResponse.StreamingData.Format> {
+                    if ((it.height ?: 0) <= targetHeight) 1 else 0
+                }.thenByDescending { it.height ?: 0 }
+                    .thenByDescending { it.bitrate },
+            )
+            .firstOrNull()
     }
 
     private suspend fun tryYtDlpFallback(
