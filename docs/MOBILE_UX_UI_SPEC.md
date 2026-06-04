@@ -71,6 +71,7 @@ Current:
 - Mini player plus expanded bottom-sheet player.
 - Queue is a bottom-sheet sub-page.
 - Playback errors use friendly copy with technical disclosure.
+- Eligible YouTube tracks can switch between Audio and Video inside the expanded player without leaving the queue, using compact headphones/video icon controls near the media surface.
 
 Problems:
 - Sheet layering can hide where the user is.
@@ -78,6 +79,8 @@ Problems:
 
 Required direction:
 - Primary controls remain stable in mini and expanded states.
+- Audio/Video remains a one-tap player mode; video must render in the regular player, open fullscreen as a top-level video overlay independent of the mini-player sheet, preserve queue/position, hide stale loading overlays once playback is visible, place fullscreen exit in the bottom-right control row, and fall back to audio with friendly copy when unavailable.
+- Save offline asks for Audio only or Audio + video instead of hiding the storage tradeoff.
 - Queue, lyrics, devices, and overflow use consistent icon placement.
 - Debug/source details stay behind disclosure or Advanced.
 

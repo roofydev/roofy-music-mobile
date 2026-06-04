@@ -820,6 +820,9 @@ class MainActivity : ComponentActivity() {
                                 MiniPlayerHeight,
                         expandedBound = maxHeight,
                     )
+                var videoPlayerFullScreen by rememberSaveable {
+                    mutableStateOf(false)
+                }
 
                 val playerAwareWindowInsets =
                     remember(
@@ -1209,6 +1212,8 @@ class MainActivity : ComponentActivity() {
                                         state = playerBottomSheetState,
                                         navController = navController,
                                         pureBlack = pureBlack,
+                                        videoFullScreen = videoPlayerFullScreen,
+                                        onVideoFullScreenChange = { videoPlayerFullScreen = it },
                                     )
 
                                     AppNavigationBar(
@@ -1268,6 +1273,8 @@ class MainActivity : ComponentActivity() {
                                         state = playerBottomSheetState,
                                         navController = navController,
                                         pureBlack = pureBlack,
+                                        videoFullScreen = videoPlayerFullScreen,
+                                        onVideoFullScreenChange = { videoPlayerFullScreen = it },
                                     )
                                 }
 

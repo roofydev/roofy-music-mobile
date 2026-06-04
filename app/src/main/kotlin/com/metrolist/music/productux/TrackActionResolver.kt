@@ -17,7 +17,6 @@ enum class TrackActionId {
     ADD_TO_PLAYLIST,
     SAVE_OFFLINE,
     ADD_TO_LIBRARY,
-    WATCH_VIDEO,
 }
 
 enum class TrackItemState {
@@ -36,7 +35,6 @@ object TrackActionResolver {
           TrackActionId.ADD_TO_PLAYLIST,
           TrackActionId.SAVE_OFFLINE,
           TrackActionId.ADD_TO_LIBRARY,
-          TrackActionId.WATCH_VIDEO,
       )
 
   fun resolveForYouTubeTrack(
@@ -59,7 +57,6 @@ object TrackActionResolver {
     // Streaming: offline cache (Exo) and permanent library (desktop import) are separate actions.
     base.add(TrackActionId.SAVE_OFFLINE)
     base.add(TrackActionId.ADD_TO_LIBRARY)
-    if (hasVideo) base.add(TrackActionId.WATCH_VIDEO)
     return base
   }
 
@@ -68,7 +65,4 @@ object TrackActionResolver {
 
   fun shouldShowAddToLibrary(actions: List<TrackActionId>): Boolean =
       TrackActionId.ADD_TO_LIBRARY in actions
-
-  fun shouldShowWatchVideo(actions: List<TrackActionId>): Boolean =
-      TrackActionId.WATCH_VIDEO in actions
 }

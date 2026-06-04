@@ -96,6 +96,9 @@ import com.metrolist.music.models.MediaMetadata
 import com.metrolist.music.device.DeviceSessionManager
 import com.metrolist.music.desktopimport.DesktopRemoteClient
 import com.metrolist.music.playback.ExoDownloadService
+import com.metrolist.music.playback.OfflineSaveMode
+import com.metrolist.music.playback.sendAddOfflineDownload
+import com.metrolist.music.playback.sendRemoveOfflineDownload
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SpeedDialItem
 import com.metrolist.music.ui.component.BottomSheetState
@@ -111,7 +114,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.round
-import com.metrolist.music.productux.WatchVideo
 import com.metrolist.music.ui.theme.RetroButton
 import com.metrolist.music.ui.theme.RetroTextButton
 import com.metrolist.music.ui.theme.RetroIconButton
@@ -177,6 +179,10 @@ fun PlayerMenu(
         mutableStateOf(false)
     }
 
+    var showOfflineSaveDialog by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     val menuState = LocalMenuState.current
 
     val listenTogetherManager = LocalListenTogetherManager.current
@@ -211,6 +217,52 @@ fun PlayerMenu(
         mediaMetadata = mediaMetadata,
         onDismiss = { showListenTogetherDialog = false },
     )
+
+    if (showOfflineSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showOfflineSaveDialog = false },
+            title = { Text(text = stringResource(R.string.save_offline_title)) },
+            text = { Text(text = stringResource(R.string.save_offline_choice_desc)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        database.transaction {
+                            insert(mediaMetadata)
+                        }
+                        sendAddOfflineDownload(
+                            context = context,
+                            mediaId = mediaMetadata.id,
+                            title = mediaMetadata.title,
+                            mode = OfflineSaveMode.AUDIO_AND_VIDEO,
+                        )
+                        showOfflineSaveDialog = false
+                        onDismiss()
+                    },
+                ) {
+                    Text(text = stringResource(R.string.save_offline_audio_video))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        database.transaction {
+                            insert(mediaMetadata)
+                        }
+                        sendAddOfflineDownload(
+                            context = context,
+                            mediaId = mediaMetadata.id,
+                            title = mediaMetadata.title,
+                            mode = OfflineSaveMode.AUDIO_ONLY,
+                        )
+                        showOfflineSaveDialog = false
+                        onDismiss()
+                    },
+                ) {
+                    Text(text = stringResource(R.string.save_offline_audio_only))
+                }
+            },
+        )
+    }
 
     var showSelectArtistDialog by rememberSaveable {
         mutableStateOf(false)
@@ -505,30 +557,6 @@ fun PlayerMenu(
                                 ),
                             )
                         }
-                        val canOpenVideo =
-                            mediaMetadata.id.isNotBlank() &&
-                                !mediaMetadata.id.startsWith("subsonic:") &&
-                                !mediaMetadata.id.contains("/")
-                        if (canOpenVideo) {
-                            add(
-                                Material3MenuItemData(
-                                    title = { Text(text = stringResource(R.string.open_video)) },
-                                    icon = {
-                                        Icon(
-                                            painter = painterResource(R.drawable.play),
-                                            contentDescription = stringResource(R.string.open_video),
-                                            modifier = Modifier.size(24.dp),
-                                        )
-                                    },
-                                    onClick = {
-                                        val url = WatchVideo.videoUrlForTrack(trackId = mediaMetadata.id)
-                                        WatchVideo.open(context, navController, url)
-                                        playerBottomSheetState.collapseSoft()
-                                        onDismiss()
-                                    },
-                                ),
-                            )
-                        }
                         // Add to Library option
                         val isInLibrary = librarySong?.song?.inLibrary != null
                         add(
@@ -617,12 +645,7 @@ fun PlayerMenu(
                                         )
                                     },
                                     onClick = {
-                                        DownloadService.sendRemoveDownload(
-                                            context,
-                                            ExoDownloadService::class.java,
-                                            mediaMetadata.id,
-                                            false,
-                                        )
+                                        sendRemoveOfflineDownload(context, mediaMetadata.id)
                                     },
                                 )
                             }
@@ -637,12 +660,7 @@ fun PlayerMenu(
                                         )
                                     },
                                     onClick = {
-                                        DownloadService.sendRemoveDownload(
-                                            context,
-                                            ExoDownloadService::class.java,
-                                            mediaMetadata.id,
-                                            false,
-                                        )
+                                        sendRemoveOfflineDownload(context, mediaMetadata.id)
                                     },
                                 )
                             }
@@ -658,21 +676,7 @@ fun PlayerMenu(
                                         )
                                     },
                                     onClick = {
-                                        database.transaction {
-                                            insert(mediaMetadata)
-                                        }
-                                        val downloadRequest =
-                                            DownloadRequest
-                                                .Builder(mediaMetadata.id, mediaMetadata.id.toUri())
-                                                .setCustomCacheKey(mediaMetadata.id)
-                                                .setData(mediaMetadata.title.toByteArray())
-                                                .build()
-                                        DownloadService.sendAddDownload(
-                                            context,
-                                            ExoDownloadService::class.java,
-                                            downloadRequest,
-                                            false,
-                                        )
+                                        showOfflineSaveDialog = true
                                     },
                                 )
                             }

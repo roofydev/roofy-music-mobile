@@ -411,6 +411,9 @@ class MusicService :
     private var scrobbleManager: ScrobbleManager? = null
 
     val automixItems = MutableStateFlow<List<MediaItem>>(emptyList())
+    val playbackVariant = MutableStateFlow(PlaybackVariant.AUDIO)
+    val videoPlaybackLoading = MutableStateFlow(false)
+    val videoPlaybackError = MutableStateFlow<String?>(null)
 
     // Tracks the original queue size to distinguish original items from auto-added ones
     private var originalQueueSize: Int = 0
@@ -1463,6 +1466,51 @@ class MusicService :
         }
     }
 
+    private fun MediaItem.withPlaybackVariant(variant: PlaybackVariant): MediaItem {
+        val sourceId = sourceMediaIdFromCacheKey(localConfiguration?.customCacheKey ?: mediaId)
+        val cacheKey = playbackVariantCacheKey(sourceId, variant)
+        return buildUpon()
+            .setMediaId(sourceId)
+            .setUri(cacheKey)
+            .setCustomCacheKey(cacheKey)
+            .build()
+    }
+
+    private fun isNativeVideoCandidate(mediaId: String): Boolean =
+        mediaId.isNotBlank() &&
+            !mediaId.startsWith("subsonic:") &&
+            !mediaId.contains("/")
+
+    fun setPlaybackVariant(variant: PlaybackVariant): Boolean {
+        if (!playerInitialized.value || !::player.isInitialized) return false
+        val currentItem = player.currentMediaItem ?: return false
+        val sourceId = sourceMediaIdFromCacheKey(currentItem.localConfiguration?.customCacheKey ?: currentItem.mediaId)
+        if (variant == PlaybackVariant.VIDEO && !isNativeVideoCandidate(sourceId)) {
+            videoPlaybackError.value = getString(R.string.video_native_unavailable)
+            return false
+        }
+
+        val currentVariant = playbackVariantFromCacheKey(currentItem.localConfiguration?.customCacheKey ?: currentItem.mediaId)
+        if (currentVariant == variant) return true
+
+        val index = player.currentMediaItemIndex
+        if (index == C.INDEX_UNSET) return false
+        val position = player.currentPosition.coerceAtLeast(0L)
+        val shouldPlay = player.playWhenReady
+        val cacheKey = playbackVariantCacheKey(sourceId, variant)
+
+        playbackVariant.value = variant
+        videoPlaybackError.value = null
+        videoPlaybackLoading.value = variant == PlaybackVariant.VIDEO
+        songUrlCache.remove(cacheKey)
+
+        player.replaceMediaItem(index, currentItem.withPlaybackVariant(variant))
+        player.seekTo(index, position)
+        player.prepare()
+        player.playWhenReady = shouldPlay
+        return true
+    }
+
     fun playQueue(
         queue: Queue,
         playWhenReady: Boolean = true,
@@ -1479,6 +1527,9 @@ class MusicService :
 
         currentQueue = queue
         queueTitle = null
+        playbackVariant.value = PlaybackVariant.AUDIO
+        videoPlaybackLoading.value = false
+        videoPlaybackError.value = null
         val persistShuffleAcrossQueues = dataStore.get(PersistentShuffleAcrossQueuesKey, false)
         val previousShuffleEnabled = player.shuffleModeEnabled
         if (!persistShuffleAcrossQueues) {
@@ -2470,6 +2521,15 @@ class MusicService :
         }
         if (events.containsAny(EVENT_TIMELINE_CHANGED, EVENT_POSITION_DISCONTINUITY)) {
             currentMediaMetadata.value = player.currentMetadata
+            val currentVariant =
+                player.currentMediaItem
+                    ?.localConfiguration
+                    ?.customCacheKey
+                    ?.let(::playbackVariantFromCacheKey)
+                    ?: PlaybackVariant.AUDIO
+            if (currentVariant != playbackVariant.value) {
+                playbackVariant.value = currentVariant
+            }
         }
 
         // Widget and Discord RPC updates
@@ -2735,6 +2795,13 @@ class MusicService :
             .tag(TAG)
             .w(error, "Player error occurred for $mediaId: errorCode=${error.errorCode}, message=${error.message}")
         reportException(error)
+
+        if (playbackVariant.value == PlaybackVariant.VIDEO) {
+            videoPlaybackError.value = error.message ?: getString(R.string.video_native_unavailable)
+            videoPlaybackLoading.value = false
+            setPlaybackVariant(PlaybackVariant.AUDIO)
+            return
+        }
 
         // Check if this song has failed too many times
         if (mediaId != null && hasExceededRetryLimit(mediaId)) {
@@ -3353,6 +3420,8 @@ class MusicService :
     private fun createDataSourceFactory(): DataSource.Factory {
         return ResolvingDataSource.Factory(createCacheDataSource()) { dataSpec ->
             val mediaId = dataSpec.key ?: error("No media id")
+            val sourceMediaId = sourceMediaIdFromCacheKey(mediaId)
+            val variant = playbackVariantFromCacheKey(mediaId)
 
             // Check if we need to bypass cache for quality change
             val shouldBypassCache = bypassCacheForQualityChange.contains(mediaId)
@@ -3366,12 +3435,12 @@ class MusicService :
                     ) ||
                     (usePlayerCache && playerCache.isCached(mediaId, dataSpec.position, CHUNK_LENGTH))
                 ) {
-                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    scope.launch(Dispatchers.IO) { recoverSong(sourceMediaId) }
                     return@Factory dataSpec
                 }
 
                 songUrlCache[mediaId]?.takeIf { it.expiresAt > System.currentTimeMillis() }?.let {
-                    scope.launch(Dispatchers.IO) { recoverSong(mediaId) }
+                    scope.launch(Dispatchers.IO) { recoverSong(sourceMediaId) }
                     cacheStreamRequestHeaders(it.url, it.requestHeaders, it.expiresAt)
                     return@Factory dataSpec.withUri(it.url.toUri())
                 }
@@ -3379,7 +3448,7 @@ class MusicService :
                 Timber.tag("MusicService").i("BYPASSING CACHE for $mediaId due to quality change")
             }
 
-            SubsonicClient.localIdFromMediaId(mediaId)?.let { subsonicId ->
+            SubsonicClient.localIdFromMediaId(sourceMediaId)?.let { subsonicId ->
                 val credentials = personalLibraryCredentials()
                 if (!credentials.isConfigured) {
                     throw PlaybackException(
@@ -3393,17 +3462,23 @@ class MusicService :
                 return@Factory dataSpec.withUri(streamUrl.toUri())
             }
 
-            Timber.tag("MusicService").i("FETCHING STREAM: $mediaId | quality=$audioQuality")
+            Timber.tag("MusicService").i("FETCHING STREAM: $mediaId | source=$sourceMediaId | variant=$variant | quality=$audioQuality")
             val playbackData =
                 runBlocking(Dispatchers.IO) {
                     val preferYtDlpFallback = forceYtDlpFallbackForMediaIds.remove(mediaId)
                     YTPlayerUtils.playerResponseForPlayback(
-                        mediaId,
+                        sourceMediaId,
                         audioQuality = audioQuality,
                         connectivityManager = connectivityManager,
                         preferYtDlpFallback = preferYtDlpFallback,
+                        playbackVariant = variant,
                     )
                 }.getOrElse { throwable ->
+                    if (variant == PlaybackVariant.VIDEO) {
+                        videoPlaybackError.value = throwable.message ?: getString(R.string.video_native_unavailable)
+                        videoPlaybackLoading.value = false
+                        playbackVariant.value = PlaybackVariant.AUDIO
+                    }
                     when (throwable) {
                         is PlaybackException -> {
                             throw throwable
@@ -3454,7 +3529,7 @@ class MusicService :
                 database.query {
                     upsert(
                         FormatEntity(
-                            id = mediaId,
+                            id = if (variant == PlaybackVariant.AUDIO) sourceMediaId else mediaId,
                             itag = format.itag,
                             mimeType = format.mimeType.split(";")[0],
                             codecs = format.mimeType.substringAfter("codecs=", "unknown").removeSurrounding("\""),
@@ -3467,7 +3542,7 @@ class MusicService :
                         ),
                     )
                 }
-                scope.launch(Dispatchers.IO) { recoverSong(mediaId, nonNullPlayback) }
+                scope.launch(Dispatchers.IO) { recoverSong(sourceMediaId, nonNullPlayback) }
 
                 // Clear bypass flag now that we've fetched fresh stream
                 if (bypassCacheForQualityChange.remove(mediaId)) {
@@ -3485,6 +3560,10 @@ class MusicService :
                         requestHeaders = nonNullPlayback.requestHeaders,
                     )
                 cacheStreamRequestHeaders(streamUrl, nonNullPlayback.requestHeaders, streamUrlExpiresAt)
+                if (variant == PlaybackVariant.VIDEO) {
+                    videoPlaybackError.value = null
+                    videoPlaybackLoading.value = false
+                }
                 return@Factory dataSpec.withUri(streamUrl.toUri()).subrange(dataSpec.uriPositionOffset, CHUNK_LENGTH)
             }
         }

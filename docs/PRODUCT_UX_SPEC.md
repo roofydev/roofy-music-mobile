@@ -139,7 +139,6 @@ Routes are defined in `NavigationBuilder.kt` unless noted as overlay/dialog.
 | `eq_wizard` | EQ wizard | `ui/screens/equalizer/wizard/WizardScreen.kt` | No | |
 | `recognition?autoStart={bool}` | Music recognition | `ui/screens/recognition/RecognitionScreen.kt` | No | Mic permission. |
 | `recognition_history` | Recognition history | `ui/screens/recognition/RecognitionHistoryScreen.kt` | No | |
-| `video_watch?url={url}` | In-app video watch | `ui/screens/video/VideoWatchScreen.kt` | No | URL-encoded. |
 | *(overlay)* | Changelog | `ui/screens/settings/ChangelogScreen.kt` | No | Shown in `MainActivity` when version changes. |
 | *(overlay)* | Player | `ui/player/Player.kt` | No | Not a NavHost route. |
 | *(activity)* | Crash | `ui/screens/CrashActivity.kt` | No | Separate `:crash` process. |
@@ -516,7 +515,7 @@ Primary playback UX: transport, seek, lyrics, queue, device output, menus.
 
 **Collapsed:** `MiniPlayer` — artwork, title/artist marquee, progress, play/pause, skip, optional swipe on thumbnail.
 
-**Expanded:** Full-screen black background, large artwork/thumbnail, controls, lyrics toggle, queue button, overflow menu, Cast/Listen On (flavor-dependent), sleep timer indicators.
+**Expanded:** Full-screen black background, large artwork/thumbnail or native video surface, controls, compact Audio/Video icon mode toggle where video is available, lyrics toggle, queue button, overflow menu, Cast/Listen On (flavor-dependent), sleep timer indicators.
 
 **Sub-pages:** Queue in `BottomSheetPage`; lyrics inline or dedicated views.
 
@@ -530,6 +529,7 @@ Primary playback UX: transport, seek, lyrics, queue, device output, menus.
 | Queue | Button | Open queue page | Tap | `BottomSheetPage` |
 | Overflow | Menu | `PlayerMenu` | Tap | Downloads, EQ, sleep timer, etc. |
 | Lyrics | Toggle | Inline lyrics | Tap | `showInlineLyrics` |
+| Audio/Video | Compact icon toggle | Switch current track between audio stream and native video stream | Tap headphones/video icon | Same queue item reloads at current position with the selected playback variant |
 | Listen On | `ListenOnButton` | Device picker | Tap | `ListenOnSheet` |
 
 #### States
@@ -540,6 +540,8 @@ Primary playback UX: transport, seek, lyrics, queue, device output, menus.
 | Collapsed | Media playing | Mini player | `collapsedBound` |
 | Expanded | User expanded | Full player | `expandedBound` |
 | Fullscreen artwork | User toggled | Immersive art | `isFullScreen` |
+| Video mode | User selects Video on eligible YouTube track | Player artwork area becomes an embedded video surface with YouTube-style fullscreen controls; errors fall back to audio with friendly copy | `PlaybackVariant`, `MusicService`, `Player.kt` |
+| Video fullscreen | User taps fullscreen on video | Top-level full-bleed video overlay independent of the mini-player sheet, tap-to-show controls, auto-hide controls, seek/play/pause/skip, bottom-right fullscreen exit, auto landscape, back exits fullscreen | `Player.kt` |
 | Playback error | ExoPlayer error | `PlaybackError` with retry | `PlaybackError.kt` |
 | Casting | Cast connected | Cast position/duration | `CastConnectionHandler` |
 | Computer remote | Desktop output selected | Remote transport state | `DeviceSessionManager` |
@@ -713,19 +715,6 @@ Pair phone with Roofy desktop (QR scan, manual code).
 #### Entry Points
 
 - Settings, Listen On sheet, deep links `roofymusic://pair/*`.
-
----
-
-### Screen: Video Watch — `video_watch`
-
-#### Purpose
-
-In-app video playback for “watch video” actions.
-
-#### Source Files
-
-- `ui/screens/video/VideoWatchScreen.kt`
-- `productux/WatchVideo.kt` (navigation helper)
 
 ---
 
@@ -982,8 +971,9 @@ Save song for offline playback.
 #### Steps
 
 1. User long-presses item → context menu.
-2. User selects download action in `YouTubeSongMenu` / `SongMenu`.
-3. `DownloadUtil` schedules download; progress in notifications `Unclear from code` UI indicator location.
+2. User selects Save offline in `YouTubeSongMenu` / current `PlayerMenu`.
+3. App asks whether to save Audio only or Audio + video.
+4. `DownloadUtil` schedules audio under the normal cache key and, when requested, video under a separate video cache key; progress appears in notifications and menu state.
 
 ---
 
@@ -1120,7 +1110,7 @@ Based on code review (not runtime audit):
 | Desktop import queue | Recognition success + settings | Obscure integration | Status chip when configured |
 | Personal library (Subsonic) | Settings + deep link | Technical URLs | Connection status on library tab |
 | Stats / History | Top bar on home only | Not on library/search | Add to account menu |
-| Video watch | Track menus / `WatchVideo` | Optional action | Keep contextual |
+| Native video player | Audio/Video toggle in player | Replaces old watch-video route | Keep in player |
 | Android Auto settings | Settings (if Gearhead installed) | Conditional visibility | OK |
 | Cast | GMS player UI | FOSS users lack feature | Document flavor differences |
 | Pure black / slim nav | Appearance settings | Power-user | OK in settings |
